@@ -7,6 +7,7 @@ import type {
   DictationModelStatus,
   DictationSessionState,
   LocalUsageSnapshot,
+  RunnerConfig,
   WorkspaceInfo,
   WorkspaceSettings,
 } from "../types";
@@ -66,6 +67,10 @@ export async function listWorkspaces(): Promise<WorkspaceInfo[]> {
     }
     throw error;
   }
+}
+
+export async function listRunners(): Promise<RunnerConfig[]> {
+  return invoke<RunnerConfig[]>("list_runners");
 }
 
 export async function getCodexConfigPath(): Promise<string> {

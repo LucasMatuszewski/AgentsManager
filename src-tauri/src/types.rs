@@ -291,6 +291,16 @@ pub(crate) struct WorkspaceSettings {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct RunnerConfig {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) kind: String,
+    pub(crate) transport: String,
+    pub(crate) default_command: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct LaunchScriptEntry {
     pub(crate) id: String,
     pub(crate) script: String,
@@ -860,7 +870,8 @@ impl Default for AppSettings {
 #[cfg(test)]
 mod tests {
     use super::{
-        AppSettings, BackendMode, WorkspaceEntry, WorkspaceGroup, WorkspaceKind, WorkspaceSettings,
+        AppSettings, BackendMode, RunnerConfig, WorkspaceEntry, WorkspaceGroup, WorkspaceKind,
+        WorkspaceSettings,
     };
 
     #[test]
@@ -955,6 +966,22 @@ mod tests {
         assert_eq!(settings.selected_open_app_id, "vscode");
         assert_eq!(settings.open_app_targets.len(), 6);
         assert_eq!(settings.open_app_targets[0].id, "vscode");
+    }
+
+    #[test]
+    fn runner_config_serializes_default_command() {
+        let config = RunnerConfig {
+            id: "codex".to_string(),
+            name: "Codex".to_string(),
+            kind: "codex".to_string(),
+            transport: "app-server".to_string(),
+            default_command: "codex".to_string(),
+        };
+        let value = serde_json::to_value(&config).expect("serialize runner config");
+        assert_eq!(
+            value.get("defaultCommand").and_then(|entry| entry.as_str()),
+            Some("codex")
+        );
     }
 
     #[test]

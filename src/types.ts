@@ -13,6 +13,14 @@ export type WorkspaceSettings = {
   worktreeSetupScript?: string | null;
 };
 
+export type RunnerConfig = {
+  id: string;
+  name: string;
+  kind: string;
+  transport: string;
+  defaultCommand: string;
+};
+
 export type LaunchScriptIconId =
   | "play"
   | "build"

@@ -14,6 +14,7 @@ mod menu;
 mod notifications;
 mod prompts;
 mod remote_backend;
+mod runners;
 mod rules;
 mod settings;
 mod state;
@@ -77,6 +78,7 @@ pub fn run() {
             files::file_read,
             files::file_write,
             codex::get_config_model,
+            runners::list_runners,
             menu::menu_set_accelerators,
             codex::codex_doctor,
             workspaces::list_workspaces,
