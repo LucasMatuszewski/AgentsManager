@@ -3,7 +3,8 @@
 All docs must canonical, no past commentary, only live state.
 
 ## Project Summary
-CodexMonitor is a Tauri app that orchestrates Codex agents across local workspaces.
+This is AgentsManager app, a fork of CodexMonitor (a Tauri app that orchestrates Codex agents across local workspaces).
+AgentsManager extends this to **multi‑agent orchestration** (Codex, Gemini CLI, Claude Code) via ACP, with runner selection and clear context UI.
 
 - Frontend: React + Vite
 - Backend (app): Tauri Rust process
@@ -296,6 +297,11 @@ At the end of a task:
 2. Run `npm run test` when you touched threads, settings, updater, shared utils, or backend cores.
 3. Run `npm run typecheck`.
 4. If you changed Rust backend code, run `cargo check` in `src-tauri`.
+
+## Product Docs
+To better understand the AgentsManager project you should check:
+- PRD (Product Requirements Document): `docs/PRD.md`
+- ADRs (Architecture Decision Records): `docs/adr/`
 
 ## Notes
 
