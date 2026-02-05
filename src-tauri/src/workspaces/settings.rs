@@ -23,7 +23,17 @@ pub(crate) fn apply_workspace_settings_update(
 ) -> Result<WorkspaceEntry, String> {
     match workspaces.get_mut(id) {
         Some(entry) => {
-            entry.settings = settings.clone();
+            let mut next = settings.clone();
+            if next.runner_id.is_none() {
+                next.runner_id = entry.settings.runner_id.clone();
+            }
+            if next.runner_command.is_none() {
+                next.runner_command = entry.settings.runner_command.clone();
+            }
+            if next.runner_env.is_none() {
+                next.runner_env = entry.settings.runner_env.clone();
+            }
+            entry.settings = next;
             Ok(entry.clone())
         }
         None => Err("workspace not found".to_string()),

@@ -204,7 +204,15 @@ fn update_workspace_settings_persists_sort_and_group() {
         kind: WorkspaceKind::Main,
         parent_id: None,
         worktree: None,
-        settings: WorkspaceSettings::default(),
+        settings: WorkspaceSettings {
+            runner_id: Some("codex".to_string()),
+            runner_command: Some("codex".to_string()),
+            runner_env: Some(HashMap::from([(
+                "CODEX_API_KEY".to_string(),
+                "test".to_string(),
+            )])),
+            ..WorkspaceSettings::default()
+        },
     };
     let mut workspaces = HashMap::from([(id.clone(), entry)]);
 
@@ -227,6 +235,16 @@ fn update_workspace_settings_persists_sort_and_group() {
         updated.settings.worktree_setup_script.as_deref(),
         Some("pnpm install"),
     );
+    assert_eq!(updated.settings.runner_id.as_deref(), Some("codex"));
+    assert_eq!(updated.settings.runner_command.as_deref(), Some("codex"));
+    assert_eq!(
+        updated.settings
+            .runner_env
+            .as_ref()
+            .and_then(|env| env.get("CODEX_API_KEY"))
+            .map(String::as_str),
+        Some("test"),
+    );
 
     let temp_dir = std::env::temp_dir().join(format!("codex-monitor-test-{}", Uuid::new_v4()));
     std::fs::create_dir_all(&temp_dir).expect("create temp dir");
@@ -238,6 +256,17 @@ fn update_workspace_settings_persists_sort_and_group() {
     let stored = read.get(&id).expect("stored workspace");
     assert_eq!(stored.settings.sort_order, Some(3));
     assert_eq!(stored.settings.group_id.as_deref(), Some("group-1"));
+    assert_eq!(stored.settings.runner_id.as_deref(), Some("codex"));
+    assert_eq!(stored.settings.runner_command.as_deref(), Some("codex"));
+    assert_eq!(
+        stored
+            .settings
+            .runner_env
+            .as_ref()
+            .and_then(|env| env.get("CODEX_API_KEY"))
+            .map(String::as_str),
+        Some("test"),
+    );
     assert!(stored.settings.sidebar_collapsed);
     assert_eq!(stored.settings.git_root.as_deref(), Some("/tmp"));
     assert_eq!(stored.settings.launch_script.as_deref(), Some("npm run dev"));
