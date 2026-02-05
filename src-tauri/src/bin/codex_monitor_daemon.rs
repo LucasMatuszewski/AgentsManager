@@ -76,7 +76,7 @@ use shared::{codex_core, files_core, git_core, settings_core, workspaces_core, w
 use shared::codex_core::CodexLoginCancelState;
 use workspace_settings::apply_workspace_settings_update;
 use types::{
-    AppSettings, WorkspaceEntry, WorkspaceInfo, WorkspaceSettings, WorktreeSetupStatus,
+    AppSettings, RunnerConfig, WorkspaceEntry, WorkspaceInfo, WorkspaceSettings, WorktreeSetupStatus,
 };
 
 const DEFAULT_LISTEN_ADDR: &str = "127.0.0.1:4732";
@@ -170,6 +170,32 @@ impl DaemonState {
 
     async fn list_workspaces(&self) -> Vec<WorkspaceInfo> {
         workspaces_core::list_workspaces_core(&self.workspaces, &self.sessions).await
+    }
+
+    async fn list_runners(&self) -> Vec<RunnerConfig> {
+        vec![
+            RunnerConfig {
+                id: "codex".to_string(),
+                name: "Codex".to_string(),
+                kind: "codex".to_string(),
+                transport: "app-server".to_string(),
+                default_command: "codex".to_string(),
+            },
+            RunnerConfig {
+                id: "gemini".to_string(),
+                name: "Gemini CLI".to_string(),
+                kind: "gemini".to_string(),
+                transport: "acp".to_string(),
+                default_command: "gemini".to_string(),
+            },
+            RunnerConfig {
+                id: "claude".to_string(),
+                name: "Claude Code".to_string(),
+                kind: "claude".to_string(),
+                transport: "acp".to_string(),
+                default_command: "claude".to_string(),
+            },
+        ]
     }
 
     async fn is_workspace_path_dir(&self, path: String) -> bool {
@@ -982,6 +1008,10 @@ async fn handle_rpc_request(
         "list_workspaces" => {
             let workspaces = state.list_workspaces().await;
             serde_json::to_value(workspaces).map_err(|err| err.to_string())
+        }
+        "list_runners" => {
+            let runners = state.list_runners().await;
+            serde_json::to_value(runners).map_err(|err| err.to_string())
         }
         "is_workspace_path_dir" => {
             let path = parse_string(&params, "path")?;
