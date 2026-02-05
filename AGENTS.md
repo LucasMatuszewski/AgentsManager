@@ -303,6 +303,13 @@ To better understand the AgentsManager project you should check:
 - PRD (Product Requirements Document): `docs/PRD.md`
 - ADRs (Architecture Decision Records): `docs/adr/`
 
+## Development Process Rules
+- Start with planning. Then validate the plan before implementation; correct as needed.
+- Keep **small, frequent commits** (no giant commits).
+- Require **unit/integration tests** for changes and validate before merge.
+- Run dev server to verify; if app isn’t usable, notify Lucas.
+- Use feature branches; don’t develop on main.
+
 ## Notes
 
 - The window uses `titleBarStyle: "Overlay"` and macOS private APIs for transparency.
