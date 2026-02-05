@@ -5,6 +5,9 @@ export type WorkspaceSettings = {
   gitRoot?: string | null;
   codexHome?: string | null;
   codexArgs?: string | null;
+  runnerId?: string | null;
+  runnerCommand?: string | null;
+  runnerEnv?: Record<string, string> | null;
   launchScript?: string | null;
   launchScripts?: LaunchScriptEntry[] | null;
   worktreeSetupScript?: string | null;

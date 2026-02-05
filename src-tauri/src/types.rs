@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -274,6 +276,12 @@ pub(crate) struct WorkspaceSettings {
     pub(crate) codex_home: Option<String>,
     #[serde(default, rename = "codexArgs")]
     pub(crate) codex_args: Option<String>,
+    #[serde(default, rename = "runnerId")]
+    pub(crate) runner_id: Option<String>,
+    #[serde(default, rename = "runnerCommand")]
+    pub(crate) runner_command: Option<String>,
+    #[serde(default, rename = "runnerEnv")]
+    pub(crate) runner_env: Option<HashMap<String, String>>,
     #[serde(default, rename = "launchScript")]
     pub(crate) launch_script: Option<String>,
     #[serde(default, rename = "launchScripts")]
@@ -987,6 +995,9 @@ mod tests {
         assert!(entry.worktree.is_none());
         assert!(entry.settings.sort_order.is_none());
         assert!(entry.settings.group_id.is_none());
+        assert!(entry.settings.runner_id.is_none());
+        assert!(entry.settings.runner_command.is_none());
+        assert!(entry.settings.runner_env.is_none());
     }
 
     #[test]
@@ -996,5 +1007,8 @@ mod tests {
         assert!(settings.sort_order.is_none());
         assert!(settings.group_id.is_none());
         assert!(settings.git_root.is_none());
+        assert!(settings.runner_id.is_none());
+        assert!(settings.runner_command.is_none());
+        assert!(settings.runner_env.is_none());
     }
 }
