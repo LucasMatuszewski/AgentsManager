@@ -605,3 +605,78 @@ pub(crate) async fn update_acp_thread_name(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{list_acp_threads, register_acp_thread, remove_acp_thread, update_acp_thread_name};
+    use serde_json::json;
+    use std::collections::HashMap;
+    use tokio::sync::Mutex;
+
+    #[test]
+    fn register_and_list_threads() {
+        let rt = tokio::runtime::Runtime::new().expect("runtime");
+        rt.block_on(async {
+            let store: Mutex<HashMap<String, Vec<serde_json::Value>>> =
+                Mutex::new(HashMap::new());
+            register_acp_thread(
+                &store,
+                "ws-1",
+                json!({ "id": "thread-1", "preview": "Hello" }),
+            )
+            .await;
+
+            let result = list_acp_threads(&store, "ws-1").await.unwrap();
+            let data = result.get("data").and_then(|value| value.as_array()).unwrap();
+            assert_eq!(data.len(), 1);
+            assert_eq!(
+                data[0].get("id").and_then(|v| v.as_str()),
+                Some("thread-1")
+            );
+        });
+    }
+
+    #[test]
+    fn update_thread_name() {
+        let rt = tokio::runtime::Runtime::new().expect("runtime");
+        rt.block_on(async {
+            let store: Mutex<HashMap<String, Vec<serde_json::Value>>> =
+                Mutex::new(HashMap::new());
+            register_acp_thread(
+                &store,
+                "ws-1",
+                json!({ "id": "thread-1", "preview": "Hello" }),
+            )
+            .await;
+
+            update_acp_thread_name(&store, "ws-1", "thread-1", "New name").await;
+
+            let result = list_acp_threads(&store, "ws-1").await.unwrap();
+            let data = result.get("data").and_then(|value| value.as_array()).unwrap();
+            assert_eq!(
+                data[0].get("preview").and_then(|v| v.as_str()),
+                Some("New name")
+            );
+        });
+    }
+
+    #[test]
+    fn remove_thread() {
+        let rt = tokio::runtime::Runtime::new().expect("runtime");
+        rt.block_on(async {
+            let store: Mutex<HashMap<String, Vec<serde_json::Value>>> =
+                Mutex::new(HashMap::new());
+            register_acp_thread(
+                &store,
+                "ws-1",
+                json!({ "id": "thread-1", "preview": "Hello" }),
+            )
+            .await;
+            remove_acp_thread(&store, "ws-1", "thread-1").await;
+
+            let result = list_acp_threads(&store, "ws-1").await.unwrap();
+            let data = result.get("data").and_then(|value| value.as_array()).unwrap();
+            assert!(data.is_empty());
+        });
+    }
+}
