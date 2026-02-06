@@ -21,6 +21,8 @@ mod storage;
 mod shared;
 #[path = "../utils.rs"]
 mod utils;
+#[path = "../logging.rs"]
+mod logging;
 #[path = "../workspaces/settings.rs"]
 mod workspace_settings;
 #[allow(dead_code)]
@@ -1407,6 +1409,8 @@ fn main() {
             std::process::exit(2);
         }
     };
+
+    logging::init_daemon_logging(&config.data_dir);
 
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()

@@ -1,7 +1,25 @@
 import { useCallback, useState } from "react";
 import type { DebugEntry } from "../../../types";
+import { logClientEvent } from "../../../services/tauri";
 
 const MAX_DEBUG_ENTRIES = 200;
+
+function resolveLogLevel(entry: DebugEntry) {
+  if (entry.source === "error" || entry.source === "stderr") {
+    return "error" as const;
+  }
+  const label = entry.label.toLowerCase();
+  if (label.includes("warn") || label.includes("warning")) {
+    return "warn" as const;
+  }
+  if (typeof entry.payload === "string") {
+    const payload = entry.payload.toLowerCase();
+    if (payload.includes("warn") || payload.includes("warning")) {
+      return "warn" as const;
+    }
+  }
+  return "info" as const;
+}
 
 export function useDebugLog() {
   const [debugOpen, setDebugOpenState] = useState(false);
@@ -43,6 +61,12 @@ export function useDebugLog() {
         setHasDebugAlerts(true);
       }
       setDebugEntries((prev) => [...prev, entry].slice(-MAX_DEBUG_ENTRIES));
+      void logClientEvent({
+        level: resolveLogLevel(entry),
+        label: entry.label,
+        source: entry.source,
+        payload: entry.payload,
+      });
     },
     [isAlertEntry, shouldStoreEntry],
   );

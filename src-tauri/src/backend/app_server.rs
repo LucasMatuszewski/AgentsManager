@@ -11,6 +11,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, Command};
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tokio::time::timeout;
+use tracing::{debug, info, warn};
 
 use crate::backend::events::{AppServerEvent, EventSink};
 use crate::shared::process_core::tokio_command;
@@ -162,7 +163,9 @@ pub(crate) fn build_codex_command_with_bin(codex_bin: Option<String>) -> Command
 pub(crate) async fn check_codex_installation(
     codex_bin: Option<String>,
 ) -> Result<Option<String>, String> {
-    let mut command = build_codex_command_with_bin(codex_bin);
+    let mut command = build_codex_command_with_bin(codex_bin.clone());
+    let path_env = build_codex_path_env(codex_bin.as_deref());
+    info!(codex_bin = ?codex_bin, path_env = ?path_env, "checking codex installation");
     command.arg("--version");
     command.stdout(std::process::Stdio::piped());
     command.stderr(std::process::Stdio::piped());
@@ -170,13 +173,16 @@ pub(crate) async fn check_codex_installation(
     let output = match timeout(Duration::from_secs(5), command.output()).await {
         Ok(result) => result.map_err(|e| {
             if e.kind() == ErrorKind::NotFound {
+                warn!(error = %e, "codex CLI not found");
                 "Codex CLI not found. Install Codex and ensure `codex` is on your PATH."
                     .to_string()
             } else {
+                warn!(error = %e, "codex CLI check failed");
                 e.to_string()
             }
         })?,
         Err(_) => {
+            warn!("codex CLI check timed out");
             return Err(
                 "Timed out while checking Codex CLI. Make sure `codex --version` runs in Terminal."
                     .to_string(),
@@ -187,6 +193,7 @@ pub(crate) async fn check_codex_installation(
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
+        debug!(stdout = %stdout, stderr = %stderr, "codex CLI --version failed");
         let detail = if stderr.trim().is_empty() {
             stdout.trim()
         } else {
@@ -204,6 +211,7 @@ pub(crate) async fn check_codex_installation(
     }
 
     let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    debug!(codex_version = %version, "codex CLI detected");
     Ok(if version.is_empty() { None } else { Some(version) })
 }
 
@@ -233,6 +241,7 @@ pub(crate) async fn spawn_workspace_session<E: EventSink>(
     command.stdout(std::process::Stdio::piped());
     command.stderr(std::process::Stdio::piped());
 
+    info!(workspace_id = %entry.id, codex_bin = ?codex_bin, "spawning codex app-server");
     let mut child = command.spawn().map_err(|e| e.to_string())?;
     let stdin = child.stdin.take().ok_or("missing stdin")?;
     let stdout = child.stdout.take().ok_or("missing stdout")?;

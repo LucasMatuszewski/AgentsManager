@@ -73,6 +73,29 @@ export async function listRunners(): Promise<RunnerConfig[]> {
   return invoke<RunnerConfig[]>("list_runners");
 }
 
+export type ClientLogLevel = "error" | "warn" | "info" | "debug" | "trace";
+
+export async function logClientEvent(payload: {
+  level: ClientLogLevel;
+  label: string;
+  source?: string;
+  payload?: unknown;
+}): Promise<void> {
+  try {
+    await invoke("log_client_event", {
+      level: payload.level,
+      label: payload.label,
+      source: payload.source,
+      payload: payload.payload ?? null,
+    });
+  } catch (error) {
+    if (isMissingTauriInvokeError(error)) {
+      return;
+    }
+    console.warn("Failed to forward client log event", error);
+  }
+}
+
 export async function getCodexConfigPath(): Promise<string> {
   return invoke<string>("get_codex_config_path");
 }

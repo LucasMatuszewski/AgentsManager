@@ -10,6 +10,7 @@ mod event_sink;
 mod git;
 mod git_utils;
 mod local_usage;
+mod logging;
 mod menu;
 mod notifications;
 mod prompts;
@@ -52,6 +53,7 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            logging::init_app_logging(&app.handle());
             let state = state::AppState::load(&app.handle());
             app.manage(state);
             #[cfg(desktop)]
@@ -168,7 +170,8 @@ pub fn run() {
             dictation::dictation_cancel,
             local_usage::local_usage_snapshot,
             notifications::is_macos_debug_build,
-            notifications::send_notification_fallback
+            notifications::send_notification_fallback,
+            logging::log_client_event
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application");

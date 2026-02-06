@@ -319,6 +319,20 @@ To better understand the AgentsManager project you should check:
 - GitHub issues require `gh` to be installed and authenticated.
 - Custom prompts are loaded from `$CODEX_HOME/prompts` (or `~/.codex/prompts`).
 
+## Logging (current state)
+- **Rust logging is now enabled** via `tracing` + `tracing_subscriber` + `tracing_appender`.
+- App init: `src-tauri/src/lib.rs` calls `logging::init_app_logging`.
+- Daemon init: `src-tauri/src/bin/codex_monitor_daemon.rs` calls `logging::init_daemon_logging`.
+- Default log files:
+  - App: `app_log_dir`/`agentsmanager.log` (fallback to app data dir)
+  - Daemon: `<data_dir>/logs/daemon.log`
+- Config via env:
+  - `AGENTSMANAGER_LOG_LEVEL` (default `info`)
+  - `AGENTSMANAGER_LOG_FILE` (default `true`)
+  - `AGENTSMANAGER_LOG_STDERR` (default `true` in debug)
+- Frontend Debug panel remains in-memory; **debug entries are forwarded to Rust logger** via `log_client_event`.
+- CLI detection logging added in `src-tauri/src/backend/app_server.rs::check_codex_installation()`.
+
 ## Error Toasts
 
 - Use `pushErrorToast` from `src/services/toasts.ts` for user-facing errors.
