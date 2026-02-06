@@ -57,6 +57,20 @@ fn resolve_runner_id(
         .unwrap_or_else(|| "codex".to_string())
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum RunnerDispatch {
+    Codex,
+    Acp,
+}
+
+fn dispatch_runner(resolved_runner: &str) -> RunnerDispatch {
+    if resolved_runner == "codex" {
+        RunnerDispatch::Codex
+    } else {
+        RunnerDispatch::Acp
+    }
+}
+
 #[tauri::command]
 pub(crate) async fn codex_doctor(
     codex_bin: Option<String>,
@@ -182,7 +196,7 @@ pub(crate) async fn start_thread(
     };
     let resolved_runner = resolve_runner_id(runner_id, &entry);
 
-    if resolved_runner != "codex" {
+    if dispatch_runner(&resolved_runner) == RunnerDispatch::Acp {
         let event_sink = TauriEventSink::new(app.clone());
         let client_version = app.package_info().version.to_string();
         let session = acp::spawn_acp_session(
@@ -1331,5 +1345,12 @@ mod tests {
             vec![],
         );
         assert_eq!(merged, base_response);
+    }
+
+    #[test]
+    fn dispatch_runner_routes_codex_only() {
+        assert_eq!(dispatch_runner("codex"), RunnerDispatch::Codex);
+        assert_eq!(dispatch_runner("gemini"), RunnerDispatch::Acp);
+        assert_eq!(dispatch_runner("claude"), RunnerDispatch::Acp);
     }
 }
