@@ -332,6 +332,7 @@ To better understand the AgentsManager project you should check:
   - `AGENTSMANAGER_LOG_STDERR` (default `true` in debug)
 - Frontend Debug panel remains in-memory; **debug entries are forwarded to Rust logger** via `log_client_event`.
 - CLI detection logging added in `src-tauri/src/backend/app_server.rs::check_codex_installation()`.
+- **Future (not implemented):** Sentry for errors + tracing + source maps + log sink (needs CI source map upload + creds).
 
 ## Error Toasts
 

@@ -103,7 +103,7 @@ describe("useThreadActions", () => {
     });
 
     expect(threadId).toBe("thread-1");
-    expect(startThread).toHaveBeenCalledWith("ws-1");
+    expect(startThread).toHaveBeenCalledWith("ws-1", null);
     expect(dispatch).toHaveBeenCalledWith({
       type: "ensureThread",
       workspaceId: "ws-1",

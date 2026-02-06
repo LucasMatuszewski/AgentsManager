@@ -7,6 +7,7 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::mpsc;
 use tokio::time::timeout;
+use tracing::info;
 
 pub(crate) mod args;
 pub(crate) mod config;
@@ -147,15 +148,17 @@ pub(crate) async fn codex_doctor(
 #[tauri::command]
 pub(crate) async fn start_thread(
     workspace_id: String,
+    runner_id: Option<String>,
     state: State<'_, AppState>,
     app: AppHandle,
 ) -> Result<Value, String> {
+    tracing::info!(workspace_id = %workspace_id, runner_id = ?runner_id, "thread/start");
     if remote_backend::is_remote_mode(&*state).await {
         return remote_backend::call_remote(
             &*state,
             app,
             "start_thread",
-            json!({ "workspaceId": workspace_id }),
+            json!({ "workspaceId": workspace_id, "runnerId": runner_id }),
         )
         .await;
     }

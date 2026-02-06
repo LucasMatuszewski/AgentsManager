@@ -35,6 +35,7 @@ type UseThreadActionsOptions = {
   threadListCursorByWorkspace: ThreadState["threadListCursorByWorkspace"];
   threadStatusById: ThreadState["threadStatusById"];
   onDebug?: (entry: DebugEntry) => void;
+  runnerId?: string | null;
   getCustomName: (workspaceId: string, threadId: string) => string | undefined;
   threadActivityRef: MutableRefObject<Record<string, Record<string, number>>>;
   loadedThreadsRef: MutableRefObject<Record<string, boolean>>;
@@ -53,6 +54,7 @@ export function useThreadActions({
   threadListCursorByWorkspace,
   threadStatusById,
   onDebug,
+  runnerId,
   getCustomName,
   threadActivityRef,
   loadedThreadsRef,
@@ -67,17 +69,21 @@ export function useThreadActions({
   }, []);
 
   const startThreadForWorkspace = useCallback(
-    async (workspaceId: string, options?: { activate?: boolean }) => {
+    async (
+      workspaceId: string,
+      options?: { activate?: boolean; runnerId?: string | null },
+    ) => {
       const shouldActivate = options?.activate !== false;
+      const selectedRunnerId = options?.runnerId ?? runnerId ?? null;
       onDebug?.({
         id: `${Date.now()}-client-thread-start`,
         timestamp: Date.now(),
         source: "client",
         label: "thread/start",
-        payload: { workspaceId },
+        payload: { workspaceId, runnerId: selectedRunnerId },
       });
       try {
-        const response = await startThreadService(workspaceId);
+        const response = await startThreadService(workspaceId, selectedRunnerId);
         onDebug?.({
           id: `${Date.now()}-server-thread-start`,
           timestamp: Date.now(),
@@ -106,7 +112,7 @@ export function useThreadActions({
         throw error;
       }
     },
-    [dispatch, extractThreadId, loadedThreadsRef, onDebug],
+    [dispatch, extractThreadId, loadedThreadsRef, onDebug, runnerId],
   );
 
   const resumeThreadForWorkspace = useCallback(

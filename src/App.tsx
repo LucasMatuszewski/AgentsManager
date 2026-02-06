@@ -711,6 +711,7 @@ function MainApp() {
     activeWorkspace,
     onWorkspaceConnected: markWorkspaceConnected,
     onDebug: addDebugEntry,
+    runnerId: selectedRunnerId,
     model: resolvedModel,
     effort: resolvedEffort,
     collaborationMode: collaborationModePayload,

@@ -537,7 +537,12 @@ impl DaemonState {
         files_core::file_write_core(&self.workspaces, scope, kind, workspace_id, content).await
     }
 
-    async fn start_thread(&self, workspace_id: String) -> Result<Value, String> {
+    async fn start_thread(
+        &self,
+        workspace_id: String,
+        runner_id: Option<String>,
+    ) -> Result<Value, String> {
+        tracing::info!(workspace_id = %workspace_id, runner_id = ?runner_id, "thread/start");
         codex_core::start_thread_core(&self.sessions, workspace_id).await
     }
 
@@ -1149,7 +1154,8 @@ async fn handle_rpc_request(
         }
         "start_thread" => {
             let workspace_id = parse_string(&params, "workspaceId")?;
-            state.start_thread(workspace_id).await
+            let runner_id = parse_optional_string(&params, "runnerId");
+            state.start_thread(workspace_id, runner_id).await
         }
         "resume_thread" => {
             let workspace_id = parse_string(&params, "workspaceId")?;

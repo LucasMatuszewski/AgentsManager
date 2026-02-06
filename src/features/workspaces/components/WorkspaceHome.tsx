@@ -635,12 +635,13 @@ export function WorkspaceHome({
             </span>
             <select
               className="composer-select composer-select--model composer-select--runner"
-              aria-label="Runner"
+              aria-label="Agent"
+              title="Agent (CLI runner used for new threads)"
               value={selectedRunnerId ?? ""}
               onChange={(event) => onSelectRunner(event.target.value || null)}
               disabled={isSubmitting || runners.length === 0}
             >
-              {runners.length === 0 && <option value="">No runners</option>}
+              {runners.length === 0 && <option value="">No agents</option>}
               {runners.map((runner) => (
                 <option key={runner.id} value={runner.id}>
                   {runner.name}

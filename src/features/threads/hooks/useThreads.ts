@@ -20,6 +20,7 @@ type UseThreadsOptions = {
   activeWorkspace: WorkspaceInfo | null;
   onWorkspaceConnected: (id: string) => void;
   onDebug?: (entry: DebugEntry) => void;
+  runnerId?: string | null;
   model?: string | null;
   effort?: string | null;
   collaborationMode?: Record<string, unknown> | null;
@@ -34,6 +35,7 @@ export function useThreads({
   activeWorkspace,
   onWorkspaceConnected,
   onDebug,
+  runnerId,
   model,
   effort,
   collaborationMode,
@@ -246,6 +248,7 @@ export function useThreads({
     threadListCursorByWorkspace: state.threadListCursorByWorkspace,
     threadStatusById: state.threadStatusById,
     onDebug,
+    runnerId,
     getCustomName,
     threadActivityRef,
     loadedThreadsRef,

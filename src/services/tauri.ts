@@ -270,8 +270,14 @@ export async function connectWorkspace(id: string): Promise<void> {
   return invoke("connect_workspace", { id });
 }
 
-export async function startThread(workspaceId: string) {
-  return invoke<any>("start_thread", { workspaceId });
+export async function startThread(
+  workspaceId: string,
+  runnerId?: string | null,
+) {
+  return invoke<any>("start_thread", {
+    workspaceId,
+    runnerId: runnerId ?? null,
+  });
 }
 
 export async function forkThread(workspaceId: string, threadId: string) {
