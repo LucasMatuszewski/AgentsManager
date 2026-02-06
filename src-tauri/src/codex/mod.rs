@@ -1240,3 +1240,56 @@ fn sanitize_run_worktree_name(value: &str) -> String {
     }
     format!("feat/{}", cleaned.trim_start_matches('/'))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{WorkspaceEntry, WorkspaceKind};
+
+    fn make_workspace_entry(runner_id: Option<String>) -> WorkspaceEntry {
+        WorkspaceEntry {
+            id: "test-workspace".to_string(),
+            name: "Test Workspace".to_string(),
+            path: "/tmp/test".to_string(),
+            codex_bin: None,
+            kind: WorkspaceKind::Main,
+            parent_id: None,
+            worktree: None,
+            settings: crate::types::WorkspaceSettings {
+                sidebar_collapsed: false,
+                sort_order: None,
+                group_id: None,
+                git_root: None,
+                codex_home: None,
+                codex_args: None,
+                runner_id,
+                runner_command: None,
+                runner_env: None,
+                launch_script: None,
+                launch_scripts: None,
+                worktree_setup_script: None,
+            },
+        }
+    }
+
+    #[test]
+    fn resolve_runner_id_uses_explicit_param() {
+        let entry = make_workspace_entry(Some("gemini".to_string()));
+        let resolved = resolve_runner_id(Some("claude".to_string()), &entry);
+        assert_eq!(resolved, "claude");
+    }
+
+    #[test]
+    fn resolve_runner_id_falls_back_to_workspace_setting() {
+        let entry = make_workspace_entry(Some("gemini".to_string()));
+        let resolved = resolve_runner_id(None, &entry);
+        assert_eq!(resolved, "gemini");
+    }
+
+    #[test]
+    fn resolve_runner_id_defaults_to_codex() {
+        let entry = make_workspace_entry(None);
+        let resolved = resolve_runner_id(None, &entry);
+        assert_eq!(resolved, "codex");
+    }
+}
