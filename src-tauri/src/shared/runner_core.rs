@@ -74,6 +74,13 @@ mod tests {
                 transport: "acp".to_string(),
                 default_command: "gemini".to_string(),
             },
+            RunnerConfig {
+                id: "claude".to_string(),
+                name: "Claude Code".to_string(),
+                kind: "claude".to_string(),
+                transport: "acp".to_string(),
+                default_command: "claude".to_string(),
+            },
         ]
     }
 
@@ -109,6 +116,21 @@ mod tests {
         let entry = entry_with_settings(settings);
         let config = resolve_runner_config(None, &entry, &runners());
         assert_resolved(config, "gemini", Some("gemini"));
+    }
+
+    #[test]
+    fn resolves_each_known_runner_setting() {
+        for (runner_id, command) in [
+            ("codex", "codex"),
+            ("gemini", "gemini"),
+            ("claude", "claude"),
+        ] {
+            let mut settings = WorkspaceSettings::default();
+            settings.runner_id = Some(runner_id.to_string());
+            let entry = entry_with_settings(settings);
+            let config = resolve_runner_config(None, &entry, &runners());
+            assert_resolved(config, runner_id, Some(command));
+        }
     }
 
     #[test]
