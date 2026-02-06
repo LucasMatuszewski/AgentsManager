@@ -118,6 +118,20 @@ mod tests {
     }
 
     #[test]
+    fn uses_requested_runner_when_registry_empty() {
+        let entry = entry_with_settings(WorkspaceSettings::default());
+        let config = resolve_runner_config(Some("gemini".to_string()), &entry, &[]);
+        assert_resolved(config, "gemini", None);
+    }
+
+    #[test]
+    fn defaults_to_codex_when_registry_empty() {
+        let entry = entry_with_settings(WorkspaceSettings::default());
+        let config = resolve_runner_config(None, &entry, &[]);
+        assert_resolved(config, "codex", None);
+    }
+
+    #[test]
     fn prefers_explicit_command_override() {
         let mut settings = WorkspaceSettings::default();
         settings.runner_id = Some("gemini".to_string());
