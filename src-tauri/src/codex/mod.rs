@@ -321,19 +321,28 @@ pub(crate) async fn list_threads(
         .cloned()
         .unwrap_or_default();
 
+    Ok(merge_thread_lists(response, base_data, base_cursor, acp_data))
+}
+
+fn merge_thread_lists(
+    base_response: Value,
+    base_data: Vec<Value>,
+    base_cursor: Value,
+    acp_data: Vec<Value>,
+) -> Value {
     if acp_data.is_empty() {
-        return Ok(response);
+        return base_response;
     }
 
     let mut merged = base_data;
     merged.extend(acp_data);
 
-    Ok(json!({
+    json!({
         "result": {
             "data": merged,
             "nextCursor": base_cursor
         }
-    }))
+    })
 }
 
 #[tauri::command]
@@ -1291,5 +1300,36 @@ mod tests {
         let entry = make_workspace_entry(None);
         let resolved = resolve_runner_id(None, &entry);
         assert_eq!(resolved, "codex");
+    }
+
+    #[test]
+    fn merge_thread_lists_combines_acp_data() {
+        let base_response = json!({ "result": { "data": [1], "nextCursor": "abc" } });
+        let merged = merge_thread_lists(
+            base_response.clone(),
+            vec![json!({ "id": "codex-1" })],
+            json!("abc"),
+            vec![json!({ "id": "acp-1" })],
+        );
+        let data = merged
+            .get("result")
+            .and_then(|value| value.get("data"))
+            .and_then(|value| value.as_array())
+            .unwrap();
+        assert_eq!(data.len(), 2);
+        assert_eq!(data[0].get("id").and_then(|v| v.as_str()), Some("codex-1"));
+        assert_eq!(data[1].get("id").and_then(|v| v.as_str()), Some("acp-1"));
+    }
+
+    #[test]
+    fn merge_thread_lists_returns_base_when_no_acp() {
+        let base_response = json!({ "result": { "data": [1], "nextCursor": "abc" } });
+        let merged = merge_thread_lists(
+            base_response.clone(),
+            vec![json!({ "id": "codex-1" })],
+            json!("abc"),
+            vec![],
+        );
+        assert_eq!(merged, base_response);
     }
 }
