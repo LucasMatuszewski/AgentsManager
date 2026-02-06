@@ -37,6 +37,10 @@ function ComposerHarness({ initialText = "", editorSettings }: HarnessProps) {
       models={[]}
       selectedModelId={null}
       onSelectModel={() => {}}
+      runners={[]}
+      selectedRunnerId={null}
+      onSelectRunner={() => {}}
+      showRunnerSelect={false}
       reasoningOptions={[]}
       selectedEffort={null}
       onSelectEffort={() => {}}

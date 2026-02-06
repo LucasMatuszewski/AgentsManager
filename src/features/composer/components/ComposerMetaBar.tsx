@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { BrainCog } from "lucide-react";
-import type { AccessMode, ThreadTokenUsage } from "../../../types";
+import type { AccessMode, RunnerConfig, ThreadTokenUsage } from "../../../types";
 
 type ComposerMetaBarProps = {
   disabled: boolean;
@@ -10,6 +10,10 @@ type ComposerMetaBarProps = {
   models: { id: string; displayName: string; model: string }[];
   selectedModelId: string | null;
   onSelectModel: (id: string) => void;
+  runners: RunnerConfig[];
+  selectedRunnerId: string | null;
+  onSelectRunner: (id: string | null) => void;
+  showRunnerSelect: boolean;
   reasoningOptions: string[];
   selectedEffort: string | null;
   onSelectEffort: (effort: string) => void;
@@ -27,6 +31,10 @@ export function ComposerMetaBar({
   models,
   selectedModelId,
   onSelectModel,
+  runners,
+  selectedRunnerId,
+  onSelectRunner,
+  showRunnerSelect,
   reasoningOptions,
   selectedEffort,
   onSelectEffort,
@@ -124,6 +132,41 @@ export function ComposerMetaBar({
               </select>
             </div>
           )
+        )}
+        {showRunnerSelect && (
+          <div className="composer-select-wrap composer-select-wrap--runner">
+            <span className="composer-icon" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6 7.5h12M6 12h8M6 16.5h10"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M19 12l2 2-2 2"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <select
+              className="composer-select composer-select--model composer-select--runner"
+              aria-label="Runner"
+              value={selectedRunnerId ?? ""}
+              onChange={(event) => onSelectRunner(event.target.value || null)}
+              disabled={disabled || runners.length === 0}
+            >
+              {runners.length === 0 && <option value="">No runners</option>}
+              {runners.map((runner) => (
+                <option key={runner.id} value={runner.id}>
+                  {runner.name}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
         <div className="composer-select-wrap composer-select-wrap--model">
           <span className="composer-icon composer-icon--model" aria-hidden>

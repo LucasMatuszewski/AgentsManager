@@ -13,6 +13,7 @@ import type {
   CustomPromptOption,
   DictationTranscript,
   QueuedMessage,
+  RunnerConfig,
   ThreadTokenUsage,
 } from "../../../types";
 import type {
@@ -51,6 +52,10 @@ type ComposerProps = {
   models: { id: string; displayName: string; model: string }[];
   selectedModelId: string | null;
   onSelectModel: (id: string) => void;
+  runners: RunnerConfig[];
+  selectedRunnerId: string | null;
+  onSelectRunner: (id: string | null) => void;
+  showRunnerSelect: boolean;
   reasoningOptions: string[];
   selectedEffort: string | null;
   onSelectEffort: (effort: string) => void;
@@ -147,6 +152,10 @@ export function Composer({
   models,
   selectedModelId,
   onSelectModel,
+  runners,
+  selectedRunnerId,
+  onSelectRunner,
+  showRunnerSelect,
   reasoningOptions,
   selectedEffort,
   onSelectEffort,
@@ -715,6 +724,10 @@ export function Composer({
         models={models}
         selectedModelId={selectedModelId}
         onSelectModel={onSelectModel}
+        runners={runners}
+        selectedRunnerId={selectedRunnerId}
+        onSelectRunner={onSelectRunner}
+        showRunnerSelect={showRunnerSelect}
         reasoningOptions={reasoningOptions}
         selectedEffort={selectedEffort}
         onSelectEffort={onSelectEffort}

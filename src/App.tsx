@@ -99,6 +99,8 @@ import { useWorkspaceLaunchScript } from "./features/app/hooks/useWorkspaceLaunc
 import { useWorkspaceLaunchScripts } from "./features/app/hooks/useWorkspaceLaunchScripts";
 import { useWorktreeSetupScript } from "./features/app/hooks/useWorktreeSetupScript";
 import { useGitCommitController } from "./features/app/hooks/useGitCommitController";
+import { useRunners } from "./features/app/hooks/useRunners";
+import { useRunnerSelection } from "./features/app/hooks/useRunnerSelection";
 import { WorkspaceHome } from "./features/workspaces/components/WorkspaceHome";
 import { useWorkspaceHome } from "./features/workspaces/hooks/useWorkspaceHome";
 import { useWorkspaceAgentMd } from "./features/workspaces/hooks/useWorkspaceAgentMd";
@@ -409,6 +411,11 @@ function MainApp() {
     onDebug: addDebugEntry,
     preferredModelId: appSettings.lastComposerModelId,
     preferredEffort: appSettings.lastComposerReasoningEffort,
+  });
+  const { runners } = useRunners({ onDebug: addDebugEntry });
+  const { selectedRunnerId, setSelectedRunnerId } = useRunnerSelection({
+    activeWorkspace,
+    runners,
   });
 
   const {
@@ -1074,6 +1081,7 @@ function MainApp() {
   const showComposer = (!isCompact
     ? centerMode === "chat" || centerMode === "diff"
     : (isTablet ? tabletTab : activeTab) === "codex") && !showWorkspaceHome;
+  const showRunnerSelect = Boolean(activeWorkspace && isNewAgentDraftMode);
   const { files, isLoading: isFilesLoading, setFileAutocompleteActive } =
     useWorkspaceFileListing({
       activeWorkspace,
@@ -2088,6 +2096,10 @@ function MainApp() {
     models,
     selectedModelId,
     onSelectModel: setSelectedModelId,
+    runners,
+    selectedRunnerId,
+    onSelectRunner: setSelectedRunnerId,
+    showRunnerSelect,
     reasoningOptions,
     selectedEffort,
     onSelectEffort: setSelectedEffort,
@@ -2161,6 +2173,9 @@ function MainApp() {
       models={models}
       selectedModelId={selectedModelId}
       onSelectModel={setSelectedModelId}
+      runners={runners}
+      selectedRunnerId={selectedRunnerId}
+      onSelectRunner={setSelectedRunnerId}
       modelSelections={workspaceModelSelections}
       onToggleModel={toggleWorkspaceModelSelection}
       onModelCountChange={setWorkspaceModelCount}

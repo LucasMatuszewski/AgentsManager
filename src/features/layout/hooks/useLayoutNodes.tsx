@@ -40,6 +40,7 @@ import type {
   GitLogEntry,
   LocalUsageSnapshot,
   ModelOption,
+  RunnerConfig,
   OpenAppTarget,
   QueuedMessage,
   RateLimitSnapshot,
@@ -396,6 +397,10 @@ type LayoutNodesOptions = {
   models: ModelOption[];
   selectedModelId: string | null;
   onSelectModel: (id: string | null) => void;
+  runners: RunnerConfig[];
+  selectedRunnerId: string | null;
+  onSelectRunner: (id: string | null) => void;
+  showRunnerSelect: boolean;
   reasoningOptions: string[];
   selectedEffort: string | null;
   onSelectEffort: (effort: string | null) => void;
@@ -583,6 +588,10 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       models={options.models}
       selectedModelId={options.selectedModelId}
       onSelectModel={options.onSelectModel}
+      runners={options.runners}
+      selectedRunnerId={options.selectedRunnerId}
+      onSelectRunner={options.onSelectRunner}
+      showRunnerSelect={options.showRunnerSelect}
       reasoningOptions={options.reasoningOptions}
       selectedEffort={options.selectedEffort}
       onSelectEffort={options.onSelectEffort}

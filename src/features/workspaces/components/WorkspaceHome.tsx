@@ -14,6 +14,7 @@ import type {
   CustomPromptOption,
   DictationTranscript,
   ModelOption,
+  RunnerConfig,
   SkillOption,
   WorkspaceInfo,
 } from "../../../types";
@@ -55,6 +56,9 @@ type WorkspaceHomeProps = {
   models: ModelOption[];
   selectedModelId: string | null;
   onSelectModel: (modelId: string) => void;
+  runners: RunnerConfig[];
+  selectedRunnerId: string | null;
+  onSelectRunner: (runnerId: string | null) => void;
   modelSelections: Record<string, number>;
   onToggleModel: (modelId: string) => void;
   onModelCountChange: (modelId: string, count: number) => void;
@@ -134,6 +138,9 @@ export function WorkspaceHome({
   models,
   selectedModelId,
   onSelectModel,
+  runners,
+  selectedRunnerId,
+  onSelectRunner,
   modelSelections,
   onToggleModel,
   onModelCountChange,
@@ -606,6 +613,42 @@ export function WorkspaceHome({
             )}
           </div>
         )}
+
+        <div className="composer-select-wrap workspace-home-control">
+          <div className="open-app-button">
+            <span className="composer-icon" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6 7.5h12M6 12h8M6 16.5h10"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M19 12l2 2-2 2"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <select
+              className="composer-select composer-select--model composer-select--runner"
+              aria-label="Runner"
+              value={selectedRunnerId ?? ""}
+              onChange={(event) => onSelectRunner(event.target.value || null)}
+              disabled={isSubmitting || runners.length === 0}
+            >
+              {runners.length === 0 && <option value="">No runners</option>}
+              {runners.map((runner) => (
+                <option key={runner.id} value={runner.id}>
+                  {runner.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <div className="open-app-menu workspace-home-control" ref={modelsRef}>
           <div className="open-app-button">
