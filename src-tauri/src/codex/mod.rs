@@ -23,9 +23,11 @@ use crate::shared::process_core::tokio_command;
 use crate::event_sink::TauriEventSink;
 use crate::remote_backend;
 use crate::shared::codex_core;
+use crate::shared::runner_core::resolve_runner_config;
 use crate::state::AppState;
 use crate::types::WorkspaceEntry;
 use crate::acp;
+use crate::runners::list_runners;
 use self::args::apply_codex_args;
 
 pub(crate) async fn spawn_workspace_session(
@@ -46,15 +48,6 @@ pub(crate) async fn spawn_workspace_session(
         event_sink,
     )
     .await
-}
-
-fn resolve_runner_id(
-    runner_id: Option<String>,
-    entry: &WorkspaceEntry,
-) -> String {
-    runner_id
-        .or_else(|| entry.settings.runner_id.clone())
-        .unwrap_or_else(|| "codex".to_string())
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -194,7 +187,8 @@ pub(crate) async fn start_thread(
             .cloned()
             .ok_or_else(|| "workspace not found".to_string())?
     };
-    let resolved_runner = resolve_runner_id(runner_id, &entry);
+    let runner_config = resolve_runner_config(runner_id, &entry, &list_runners());
+    let resolved_runner = runner_config.id.clone();
 
     if dispatch_runner(&resolved_runner) == RunnerDispatch::Acp {
         let event_sink = TauriEventSink::new(app.clone());
@@ -202,8 +196,8 @@ pub(crate) async fn start_thread(
         let session = acp::spawn_acp_session(
             entry.clone(),
             resolved_runner.clone(),
-            entry.settings.runner_command.clone(),
-            entry.settings.runner_env.clone(),
+            runner_config.command.clone(),
+            runner_config.env.clone(),
             client_version,
             event_sink.clone(),
         )
@@ -1267,54 +1261,6 @@ fn sanitize_run_worktree_name(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{WorkspaceEntry, WorkspaceKind};
-
-    fn make_workspace_entry(runner_id: Option<String>) -> WorkspaceEntry {
-        WorkspaceEntry {
-            id: "test-workspace".to_string(),
-            name: "Test Workspace".to_string(),
-            path: "/tmp/test".to_string(),
-            codex_bin: None,
-            kind: WorkspaceKind::Main,
-            parent_id: None,
-            worktree: None,
-            settings: crate::types::WorkspaceSettings {
-                sidebar_collapsed: false,
-                sort_order: None,
-                group_id: None,
-                git_root: None,
-                codex_home: None,
-                codex_args: None,
-                runner_id,
-                runner_command: None,
-                runner_env: None,
-                launch_script: None,
-                launch_scripts: None,
-                worktree_setup_script: None,
-            },
-        }
-    }
-
-    #[test]
-    fn resolve_runner_id_uses_explicit_param() {
-        let entry = make_workspace_entry(Some("gemini".to_string()));
-        let resolved = resolve_runner_id(Some("claude".to_string()), &entry);
-        assert_eq!(resolved, "claude");
-    }
-
-    #[test]
-    fn resolve_runner_id_falls_back_to_workspace_setting() {
-        let entry = make_workspace_entry(Some("gemini".to_string()));
-        let resolved = resolve_runner_id(None, &entry);
-        assert_eq!(resolved, "gemini");
-    }
-
-    #[test]
-    fn resolve_runner_id_defaults_to_codex() {
-        let entry = make_workspace_entry(None);
-        let resolved = resolve_runner_id(None, &entry);
-        assert_eq!(resolved, "codex");
-    }
 
     #[test]
     fn merge_thread_lists_combines_acp_data() {

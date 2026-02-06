@@ -76,7 +76,9 @@ use backend::app_server::{
 };
 use backend::events::{AppServerEvent, EventSink, TerminalExit, TerminalOutput};
 use storage::{read_settings, read_workspaces};
-use shared::{codex_core, files_core, git_core, settings_core, workspaces_core, worktree_core};
+use shared::{
+    codex_core, files_core, git_core, runner_core, settings_core, workspaces_core, worktree_core,
+};
 use shared::codex_core::CodexLoginCancelState;
 use workspace_settings::apply_workspace_settings_update;
 use types::{
@@ -558,17 +560,17 @@ impl DaemonState {
                 .cloned()
                 .ok_or_else(|| "workspace not found".to_string())?
         };
-        let resolved_runner = runner_id
-            .or_else(|| entry.settings.runner_id.clone())
-            .unwrap_or_else(|| "codex".to_string());
+        let runner_config =
+            runner_core::resolve_runner_config(runner_id, &entry, &self.list_runners().await);
+        let resolved_runner = runner_config.id.clone();
 
         if resolved_runner != "codex" {
             let client_version = env::var("AGENTSMANAGER_CLIENT_VERSION").unwrap_or_else(|_| "0.0.0".to_string());
             let session = acp::spawn_acp_session(
                 entry.clone(),
                 resolved_runner.clone(),
-                entry.settings.runner_command.clone(),
-                entry.settings.runner_env.clone(),
+                runner_config.command.clone(),
+                runner_config.env.clone(),
                 client_version,
                 self.event_sink.clone(),
             )
