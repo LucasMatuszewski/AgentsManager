@@ -8,10 +8,14 @@ use crate::dictation::DictationState;
 use crate::shared::codex_core::CodexLoginCancelState;
 use crate::storage::{read_settings, read_workspaces};
 use crate::types::{AppSettings, WorkspaceEntry};
+use crate::acp::AcpSession;
 
 pub(crate) struct AppState {
     pub(crate) workspaces: Mutex<HashMap<String, WorkspaceEntry>>,
     pub(crate) sessions: Mutex<HashMap<String, Arc<crate::codex::WorkspaceSession>>>,
+    pub(crate) acp_sessions: Mutex<HashMap<String, Arc<AcpSession>>>,
+    pub(crate) acp_threads: Mutex<HashMap<String, Vec<serde_json::Value>>>,
+    pub(crate) thread_runners: Mutex<HashMap<String, String>>,
     pub(crate) terminal_sessions:
         Mutex<HashMap<String, Arc<crate::terminal::TerminalSession>>>,
     pub(crate) remote_backend: Mutex<Option<crate::remote_backend::RemoteBackend>>,
@@ -35,6 +39,9 @@ impl AppState {
         Self {
             workspaces: Mutex::new(workspaces),
             sessions: Mutex::new(HashMap::new()),
+            acp_sessions: Mutex::new(HashMap::new()),
+            acp_threads: Mutex::new(HashMap::new()),
+            thread_runners: Mutex::new(HashMap::new()),
             terminal_sessions: Mutex::new(HashMap::new()),
             remote_backend: Mutex::new(None),
             storage_path,

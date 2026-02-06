@@ -4,6 +4,7 @@ use tauri::{RunEvent, WindowEvent};
 
 mod backend;
 mod codex;
+mod acp;
 mod files;
 mod dictation;
 mod event_sink;

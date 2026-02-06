@@ -25,6 +25,7 @@ use crate::remote_backend;
 use crate::shared::codex_core;
 use crate::state::AppState;
 use crate::types::WorkspaceEntry;
+use crate::acp;
 use self::args::apply_codex_args;
 
 pub(crate) async fn spawn_workspace_session(
@@ -45,6 +46,15 @@ pub(crate) async fn spawn_workspace_session(
         event_sink,
     )
     .await
+}
+
+fn resolve_runner_id(
+    runner_id: Option<String>,
+    entry: &WorkspaceEntry,
+) -> String {
+    runner_id
+        .or_else(|| entry.settings.runner_id.clone())
+        .unwrap_or_else(|| "codex".to_string())
 }
 
 #[tauri::command]
@@ -163,6 +173,56 @@ pub(crate) async fn start_thread(
         .await;
     }
 
+    let entry = {
+        let workspaces = state.workspaces.lock().await;
+        workspaces
+            .get(&workspace_id)
+            .cloned()
+            .ok_or_else(|| "workspace not found".to_string())?
+    };
+    let resolved_runner = resolve_runner_id(runner_id, &entry);
+
+    if resolved_runner != "codex" {
+        let event_sink = TauriEventSink::new(app.clone());
+        let client_version = app.package_info().version.to_string();
+        let session = acp::spawn_acp_session(
+            entry.clone(),
+            resolved_runner.clone(),
+            entry.settings.runner_command.clone(),
+            entry.settings.runner_env.clone(),
+            client_version,
+            event_sink.clone(),
+        )
+        .await?;
+        let thread_id = session
+            .session_id
+            .lock()
+            .await
+            .clone()
+            .ok_or_else(|| "ACP session missing sessionId".to_string())?;
+
+        state
+            .acp_sessions
+            .lock()
+            .await
+            .insert(thread_id.clone(), session);
+        state
+            .thread_runners
+            .lock()
+            .await
+            .insert(thread_id.clone(), resolved_runner);
+
+        let thread_payload = json!({
+            "id": thread_id,
+            "cwd": entry.path,
+            "preview": "New ACP session",
+            "createdAt": chrono::Utc::now().timestamp_millis()
+        });
+        acp::register_acp_thread(&state.acp_threads, &workspace_id, thread_payload).await;
+
+        return Ok(json!({ "result": { "thread": { "id": thread_id }}}));
+    }
+
     codex_core::start_thread_core(&state.sessions, workspace_id).await
 }
 
@@ -183,6 +243,12 @@ pub(crate) async fn resume_thread(
         .await;
     }
 
+    if let Some(runner_id) = state.thread_runners.lock().await.get(&thread_id).cloned() {
+        if runner_id != "codex" {
+            return Ok(json!({ "result": null }));
+        }
+    }
+
     codex_core::resume_thread_core(&state.sessions, workspace_id, thread_id).await
 }
 
@@ -201,6 +267,12 @@ pub(crate) async fn fork_thread(
             json!({ "workspaceId": workspace_id, "threadId": thread_id }),
         )
         .await;
+    }
+
+    if let Some(runner_id) = state.thread_runners.lock().await.get(&thread_id).cloned() {
+        if runner_id != "codex" {
+            return Err("ACP runners do not support fork yet".to_string());
+        }
     }
 
     codex_core::fork_thread_core(&state.sessions, workspace_id, thread_id).await
@@ -224,7 +296,44 @@ pub(crate) async fn list_threads(
         .await;
     }
 
-    codex_core::list_threads_core(&state.sessions, workspace_id, cursor, limit).await
+    let response = codex_core::list_threads_core(&state.sessions, workspace_id.clone(), cursor, limit).await?;
+    let acp_response = acp::list_acp_threads(&state.acp_threads, &workspace_id).await?;
+
+    let (base_data, base_cursor) = {
+        let result = response.get("result");
+        let container = result.unwrap_or(&response);
+        let data = container
+            .get("data")
+            .and_then(|value| value.as_array())
+            .cloned()
+            .unwrap_or_default();
+        let next_cursor = container
+            .get("nextCursor")
+            .or_else(|| container.get("next_cursor"))
+            .cloned()
+            .unwrap_or(Value::Null);
+        (data, next_cursor)
+    };
+
+    let acp_data = acp_response
+        .get("data")
+        .and_then(|value| value.as_array())
+        .cloned()
+        .unwrap_or_default();
+
+    if acp_data.is_empty() {
+        return Ok(response);
+    }
+
+    let mut merged = base_data;
+    merged.extend(acp_data);
+
+    Ok(json!({
+        "result": {
+            "data": merged,
+            "nextCursor": base_cursor
+        }
+    }))
 }
 
 #[tauri::command]
@@ -265,6 +374,18 @@ pub(crate) async fn archive_thread(
         .await;
     }
 
+    if let Some(runner_id) = state.thread_runners.lock().await.get(&thread_id).cloned() {
+        if runner_id != "codex" {
+            if let Some(session) = state.acp_sessions.lock().await.remove(&thread_id) {
+                let mut child = session.child.lock().await;
+                let _ = child.kill().await;
+            }
+            state.thread_runners.lock().await.remove(&thread_id);
+            acp::remove_acp_thread(&state.acp_threads, &workspace_id, &thread_id).await;
+            return Ok(json!({ "result": null }));
+        }
+    }
+
     codex_core::archive_thread_core(&state.sessions, workspace_id, thread_id).await
 }
 
@@ -283,6 +404,12 @@ pub(crate) async fn compact_thread(
             json!({ "workspaceId": workspace_id, "threadId": thread_id }),
         )
         .await;
+    }
+
+    if let Some(runner_id) = state.thread_runners.lock().await.get(&thread_id).cloned() {
+        if runner_id != "codex" {
+            return Ok(json!({ "result": null }));
+        }
     }
 
     codex_core::compact_thread_core(&state.sessions, workspace_id, thread_id).await
@@ -304,6 +431,14 @@ pub(crate) async fn set_thread_name(
             json!({ "workspaceId": workspace_id, "threadId": thread_id, "name": name }),
         )
         .await;
+    }
+
+    if let Some(runner_id) = state.thread_runners.lock().await.get(&thread_id).cloned() {
+        if runner_id != "codex" {
+            acp::update_acp_thread_name(&state.acp_threads, &workspace_id, &thread_id, &name)
+                .await;
+            return Ok(json!({ "result": null }));
+        }
     }
 
     codex_core::set_thread_name_core(&state.sessions, workspace_id, thread_id, name).await
@@ -349,6 +484,20 @@ pub(crate) async fn send_user_message(
             Value::Object(payload),
         )
         .await;
+    }
+
+    if let Some(runner_id) = state.thread_runners.lock().await.get(&thread_id).cloned() {
+        if runner_id != "codex" {
+            let session = state
+                .acp_sessions
+                .lock()
+                .await
+                .get(&thread_id)
+                .cloned()
+                .ok_or_else(|| "ACP session not found".to_string())?;
+            let event_sink = TauriEventSink::new(app.clone());
+            return acp::start_prompt_turn(&session, event_sink, text, images).await;
+        }
     }
 
     codex_core::send_user_message_core(
@@ -400,6 +549,20 @@ pub(crate) async fn turn_interrupt(
             json!({ "workspaceId": workspace_id, "threadId": thread_id, "turnId": turn_id }),
         )
         .await;
+    }
+
+    if let Some(runner_id) = state.thread_runners.lock().await.get(&thread_id).cloned() {
+        if runner_id != "codex" {
+            let session = state
+                .acp_sessions
+                .lock()
+                .await
+                .get(&thread_id)
+                .cloned()
+                .ok_or_else(|| "ACP session not found".to_string())?;
+            acp::cancel_prompt_turn(&session).await?;
+            return Ok(json!({ "result": { "turnId": turn_id } }));
+        }
     }
 
     codex_core::turn_interrupt_core(&state.sessions, workspace_id, thread_id, turn_id).await
