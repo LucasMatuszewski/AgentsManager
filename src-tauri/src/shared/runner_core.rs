@@ -56,6 +56,7 @@ pub(crate) fn resolve_runner_config(
 mod tests {
     use super::{resolve_runner_config, ResolvedRunnerConfig};
     use crate::types::{RunnerConfig, WorkspaceEntry, WorkspaceKind, WorkspaceSettings};
+    use std::collections::HashMap;
 
     fn runners() -> Vec<RunnerConfig> {
         vec![
@@ -139,5 +140,20 @@ mod tests {
         let entry = entry_with_settings(settings);
         let config = resolve_runner_config(None, &entry, &runners());
         assert_resolved(config, "gemini", Some("custom-gemini"));
+    }
+
+    #[test]
+    fn preserves_runner_env_overrides() {
+        let mut settings = WorkspaceSettings::default();
+        settings.runner_env = Some(HashMap::from([(
+            "FOO".to_string(),
+            "BAR".to_string(),
+        )]));
+        let entry = entry_with_settings(settings);
+        let config = resolve_runner_config(None, &entry, &runners());
+        assert_eq!(
+            config.env.as_ref().and_then(|env| env.get("FOO")),
+            Some(&"BAR".to_string())
+        );
     }
 }
