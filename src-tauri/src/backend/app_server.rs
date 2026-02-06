@@ -230,7 +230,7 @@ pub(crate) async fn spawn_workspace_session<E: EventSink>(
         .or(default_codex_bin);
     let _ = check_codex_installation(codex_bin.clone()).await?;
 
-    let mut command = build_codex_command_with_bin(codex_bin);
+    let mut command = build_codex_command_with_bin(codex_bin.clone());
     apply_codex_args(&mut command, codex_args.as_deref())?;
     command.current_dir(&entry.path);
     command.arg("app-server");

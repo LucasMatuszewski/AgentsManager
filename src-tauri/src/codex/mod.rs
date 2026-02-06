@@ -7,7 +7,7 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::mpsc;
 use tokio::time::timeout;
-use tracing::info;
+// use tracing::info;
 
 pub(crate) mod args;
 pub(crate) mod config;

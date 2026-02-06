@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use once_cell::sync::OnceCell;
+use tauri::Manager;
 use tracing::{debug, error, info, trace, warn};
 use tracing_appender::rolling;
 use tracing_appender::non_blocking::WorkerGuard;
@@ -50,17 +51,19 @@ fn init_logging(settings: LogSettings) {
     }
 
     let filter = build_filter(&settings.level);
-    let mut registry = tracing_subscriber::registry();
 
-    if settings.log_to_stderr {
-        let stderr_layer = tracing_subscriber::fmt::layer()
-            .with_writer(std::io::stderr)
-            .with_ansi(true)
-            .with_filter(filter.clone());
-        registry = registry.with(stderr_layer);
-    }
+    let stderr_layer = if settings.log_to_stderr {
+        Some(
+            tracing_subscriber::fmt::layer()
+                .with_writer(std::io::stderr)
+                .with_ansi(true)
+                .with_filter(filter.clone()),
+        )
+    } else {
+        None
+    };
 
-    if settings.log_to_file {
+    let file_layer = if settings.log_to_file {
         if let Some(file_path) = settings.file_path {
             if let Some(parent) = file_path.parent() {
                 let _ = std::fs::create_dir_all(parent);
@@ -75,16 +78,23 @@ fn init_logging(settings: LogSettings) {
                     .unwrap_or("agentsmanager.log"),
             );
             let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
-            let file_layer = tracing_subscriber::fmt::layer()
+            let layer = tracing_subscriber::fmt::layer()
                 .with_writer(non_blocking)
                 .with_ansi(false)
                 .with_filter(filter.clone());
             let _ = LOG_GUARD.set(guard);
-            registry = registry.with(file_layer);
+            Some(layer)
+        } else {
+            None
         }
-    }
+    } else {
+        None
+    };
 
-    registry.init();
+    tracing_subscriber::registry()
+        .with(stderr_layer)
+        .with(file_layer)
+        .init();
     let _ = LOG_INITIALIZED.set(());
 }
 
