@@ -23,6 +23,8 @@ mod shared;
 mod utils;
 #[path = "../logging.rs"]
 mod logging;
+#[path = "../acp.rs"]
+mod acp;
 #[path = "../workspaces/settings.rs"]
 mod workspace_settings;
 #[allow(dead_code)]
@@ -139,6 +141,9 @@ struct DaemonState {
     data_dir: PathBuf,
     workspaces: Mutex<HashMap<String, WorkspaceEntry>>,
     sessions: Mutex<HashMap<String, Arc<WorkspaceSession>>>,
+    acp_sessions: Mutex<HashMap<String, Arc<acp::AcpSession>>>,
+    acp_threads: Mutex<HashMap<String, Vec<Value>>>,
+    thread_runners: Mutex<HashMap<String, String>>,
     storage_path: PathBuf,
     settings_path: PathBuf,
     app_settings: Mutex<AppSettings>,
@@ -162,6 +167,9 @@ impl DaemonState {
             data_dir: config.data_dir.clone(),
             workspaces: Mutex::new(workspaces),
             sessions: Mutex::new(HashMap::new()),
+            acp_sessions: Mutex::new(HashMap::new()),
+            acp_threads: Mutex::new(HashMap::new()),
+            thread_runners: Mutex::new(HashMap::new()),
             storage_path,
             settings_path,
             app_settings: Mutex::new(app_settings),
@@ -543,14 +551,73 @@ impl DaemonState {
         runner_id: Option<String>,
     ) -> Result<Value, String> {
         tracing::info!(workspace_id = %workspace_id, runner_id = ?runner_id, "thread/start");
+        let entry = {
+            let workspaces = self.workspaces.lock().await;
+            workspaces
+                .get(&workspace_id)
+                .cloned()
+                .ok_or_else(|| "workspace not found".to_string())?
+        };
+        let resolved_runner = runner_id
+            .or_else(|| entry.settings.runner_id.clone())
+            .unwrap_or_else(|| "codex".to_string());
+
+        if resolved_runner != "codex" {
+            let client_version = env::var("AGENTSMANAGER_CLIENT_VERSION").unwrap_or_else(|_| "0.0.0".to_string());
+            let session = acp::spawn_acp_session(
+                entry.clone(),
+                resolved_runner.clone(),
+                entry.settings.runner_command.clone(),
+                entry.settings.runner_env.clone(),
+                client_version,
+                self.event_sink.clone(),
+            )
+            .await?;
+            let thread_id = session
+                .session_id
+                .lock()
+                .await
+                .clone()
+                .ok_or_else(|| "ACP session missing sessionId".to_string())?;
+
+            self.acp_sessions
+                .lock()
+                .await
+                .insert(thread_id.clone(), session);
+            self.thread_runners
+                .lock()
+                .await
+                .insert(thread_id.clone(), resolved_runner);
+
+            let thread_payload = json!({
+                "id": thread_id,
+                "cwd": entry.path,
+                "preview": "New ACP session",
+                "createdAt": chrono::Utc::now().timestamp_millis()
+            });
+            acp::register_acp_thread(&self.acp_threads, &workspace_id, thread_payload).await;
+
+            return Ok(json!({ "result": { "thread": { "id": thread_id }}}));
+        }
+
         codex_core::start_thread_core(&self.sessions, workspace_id).await
     }
 
     async fn resume_thread(&self, workspace_id: String, thread_id: String) -> Result<Value, String> {
+        if let Some(runner_id) = self.thread_runners.lock().await.get(&thread_id).cloned() {
+            if runner_id != "codex" {
+                return Ok(json!({ "result": null }));
+            }
+        }
         codex_core::resume_thread_core(&self.sessions, workspace_id, thread_id).await
     }
 
     async fn fork_thread(&self, workspace_id: String, thread_id: String) -> Result<Value, String> {
+        if let Some(runner_id) = self.thread_runners.lock().await.get(&thread_id).cloned() {
+            if runner_id != "codex" {
+                return Err("ACP runners do not support fork yet".to_string());
+            }
+        }
         codex_core::fork_thread_core(&self.sessions, workspace_id, thread_id).await
     }
 
@@ -560,7 +627,45 @@ impl DaemonState {
         cursor: Option<String>,
         limit: Option<u32>,
     ) -> Result<Value, String> {
-        codex_core::list_threads_core(&self.sessions, workspace_id, cursor, limit).await
+        let response =
+            codex_core::list_threads_core(&self.sessions, workspace_id.clone(), cursor, limit).await?;
+        let acp_response = acp::list_acp_threads(&self.acp_threads, &workspace_id).await?;
+
+        let (base_data, base_cursor) = {
+            let result = response.get("result");
+            let container = result.unwrap_or(&response);
+            let data = container
+                .get("data")
+                .and_then(|value| value.as_array())
+                .cloned()
+                .unwrap_or_default();
+            let next_cursor = container
+                .get("nextCursor")
+                .or_else(|| container.get("next_cursor"))
+                .cloned()
+                .unwrap_or(Value::Null);
+            (data, next_cursor)
+        };
+
+        let acp_data = acp_response
+            .get("data")
+            .and_then(|value| value.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        if acp_data.is_empty() {
+            return Ok(response);
+        }
+
+        let mut merged = base_data;
+        merged.extend(acp_data);
+
+        Ok(json!({
+            "result": {
+                "data": merged,
+                "nextCursor": base_cursor
+            }
+        }))
     }
 
     async fn list_mcp_server_status(
@@ -573,10 +678,26 @@ impl DaemonState {
     }
 
     async fn archive_thread(&self, workspace_id: String, thread_id: String) -> Result<Value, String> {
+        if let Some(runner_id) = self.thread_runners.lock().await.get(&thread_id).cloned() {
+            if runner_id != "codex" {
+                if let Some(session) = self.acp_sessions.lock().await.remove(&thread_id) {
+                    let mut child = session.child.lock().await;
+                    let _ = child.kill().await;
+                }
+                self.thread_runners.lock().await.remove(&thread_id);
+                acp::remove_acp_thread(&self.acp_threads, &workspace_id, &thread_id).await;
+                return Ok(json!({ "result": null }));
+            }
+        }
         codex_core::archive_thread_core(&self.sessions, workspace_id, thread_id).await
     }
 
     async fn compact_thread(&self, workspace_id: String, thread_id: String) -> Result<Value, String> {
+        if let Some(runner_id) = self.thread_runners.lock().await.get(&thread_id).cloned() {
+            if runner_id != "codex" {
+                return Ok(json!({ "result": null }));
+            }
+        }
         codex_core::compact_thread_core(&self.sessions, workspace_id, thread_id).await
     }
 
@@ -586,6 +707,13 @@ impl DaemonState {
         thread_id: String,
         name: String,
     ) -> Result<Value, String> {
+        if let Some(runner_id) = self.thread_runners.lock().await.get(&thread_id).cloned() {
+            if runner_id != "codex" {
+                acp::update_acp_thread_name(&self.acp_threads, &workspace_id, &thread_id, &name)
+                    .await;
+                return Ok(json!({ "result": null }));
+            }
+        }
         codex_core::set_thread_name_core(&self.sessions, workspace_id, thread_id, name).await
     }
 
@@ -600,6 +728,18 @@ impl DaemonState {
         images: Option<Vec<String>>,
         collaboration_mode: Option<Value>,
     ) -> Result<Value, String> {
+        if let Some(runner_id) = self.thread_runners.lock().await.get(&thread_id).cloned() {
+            if runner_id != "codex" {
+                let session = self
+                    .acp_sessions
+                    .lock()
+                    .await
+                    .get(&thread_id)
+                    .cloned()
+                    .ok_or_else(|| "ACP session not found".to_string())?;
+                return acp::start_prompt_turn(&session, self.event_sink.clone(), text, images).await;
+            }
+        }
         codex_core::send_user_message_core(
             &self.sessions,
             workspace_id,
@@ -620,6 +760,19 @@ impl DaemonState {
         thread_id: String,
         turn_id: String,
     ) -> Result<Value, String> {
+        if let Some(runner_id) = self.thread_runners.lock().await.get(&thread_id).cloned() {
+            if runner_id != "codex" {
+                let session = self
+                    .acp_sessions
+                    .lock()
+                    .await
+                    .get(&thread_id)
+                    .cloned()
+                    .ok_or_else(|| "ACP session not found".to_string())?;
+                acp::cancel_prompt_turn(&session).await?;
+                return Ok(json!({ "result": { "turnId": turn_id } }));
+            }
+        }
         codex_core::turn_interrupt_core(&self.sessions, workspace_id, thread_id, turn_id).await
     }
 
