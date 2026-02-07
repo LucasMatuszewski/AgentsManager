@@ -2966,7 +2966,7 @@ export function SettingsView({
               <section className="settings-section">
                 <div className="settings-section-title">Codex</div>
                 <div className="settings-section-subtitle">
-                  Configure the Codex CLI used by CodexMonitor and validate the install.
+                  Configure the Codex CLI used by AgentsManager and validate the install.
                 </div>
                 <div className="settings-field">
                   <label className="settings-field-label" htmlFor="codex-path">
@@ -3182,7 +3182,7 @@ export function SettingsView({
                       />
                     </div>
                     <div className="settings-help">
-                      Start the daemon separately and point CodexMonitor to it (host:port + token).
+                      Start the daemon separately and point AgentsManager to it (host:port + token).
                     </div>
                   </div>
                 )}

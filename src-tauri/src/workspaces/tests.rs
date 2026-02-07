@@ -96,7 +96,7 @@ fn sanitize_clone_dir_name_allows_safe_chars() {
 
 #[test]
 fn build_clone_destination_path_sanitizes_and_uniquifies() {
-    let temp_dir = std::env::temp_dir().join(format!("codex-monitor-test-{}", Uuid::new_v4()));
+    let temp_dir = std::env::temp_dir().join(format!("agents-manager-test-{}", Uuid::new_v4()));
     let copies_folder = temp_dir.join("copies");
     std::fs::create_dir_all(&copies_folder).expect("create copies folder");
 
@@ -246,7 +246,7 @@ fn update_workspace_settings_persists_sort_and_group() {
         Some("test"),
     );
 
-    let temp_dir = std::env::temp_dir().join(format!("codex-monitor-test-{}", Uuid::new_v4()));
+    let temp_dir = std::env::temp_dir().join(format!("agents-manager-test-{}", Uuid::new_v4()));
     std::fs::create_dir_all(&temp_dir).expect("create temp dir");
     let path = PathBuf::from(temp_dir.join("workspaces.json"));
     let list: Vec<_> = workspaces.values().cloned().collect();
@@ -279,7 +279,7 @@ fn update_workspace_settings_persists_sort_and_group() {
 #[test]
 fn rename_worktree_preserves_custom_name() {
     run_async(async {
-        let temp_dir = std::env::temp_dir().join(format!("codex-monitor-test-{}", Uuid::new_v4()));
+        let temp_dir = std::env::temp_dir().join(format!("agents-manager-test-{}", Uuid::new_v4()));
         let repo_path = temp_dir.join("repo");
         std::fs::create_dir_all(&repo_path).expect("create repo path");
     let worktree_path = temp_dir.join("worktrees").join("parent").join("old");
@@ -349,7 +349,7 @@ fn rename_worktree_preserves_custom_name() {
 #[test]
 fn rename_worktree_updates_name_when_unmodified() {
     run_async(async {
-        let temp_dir = std::env::temp_dir().join(format!("codex-monitor-test-{}", Uuid::new_v4()));
+        let temp_dir = std::env::temp_dir().join(format!("agents-manager-test-{}", Uuid::new_v4()));
         let repo_path = temp_dir.join("repo");
         std::fs::create_dir_all(&repo_path).expect("create repo path");
     let worktree_path = temp_dir.join("worktrees").join("parent").join("old");

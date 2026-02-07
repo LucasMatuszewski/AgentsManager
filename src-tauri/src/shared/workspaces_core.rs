@@ -1176,7 +1176,7 @@ mod tests {
     use uuid::Uuid;
 
     fn make_temp_dir() -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!("codex-monitor-{}", Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("agents-manager-{}", Uuid::new_v4()));
         std::fs::create_dir_all(&dir).expect("failed to create temp dir");
         dir
     }

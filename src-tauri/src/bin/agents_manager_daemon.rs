@@ -945,20 +945,20 @@ fn default_data_dir() -> PathBuf {
     if let Ok(xdg) = env::var("XDG_DATA_HOME") {
         let trimmed = xdg.trim();
         if !trimmed.is_empty() {
-            return PathBuf::from(trimmed).join("codex-monitor-daemon");
+            return PathBuf::from(trimmed).join("agents-manager-daemon");
         }
     }
     let home = env::var("HOME").unwrap_or_else(|_| ".".to_string());
     PathBuf::from(home)
         .join(".local")
         .join("share")
-        .join("codex-monitor-daemon")
+        .join("agents-manager-daemon")
 }
 
 fn usage() -> String {
     format!(
         "\
-USAGE:\n  codex-monitor-daemon [--listen <addr>] [--data-dir <path>] [--token <token> | --insecure-no-auth]\n\n\
+USAGE:\n  agents-manager-daemon [--listen <addr>] [--data-dir <path>] [--token <token> | --insecure-no-auth]\n\n\
 OPTIONS:\n  --listen <addr>        Bind address (default: {DEFAULT_LISTEN_ADDR})\n  --data-dir <path>      Data dir holding workspaces.json/settings.json\n  --token <token>        Shared token required by clients\n  --insecure-no-auth      Disable auth (dev only)\n  -h, --help             Show this help\n"
     )
 }
@@ -967,7 +967,7 @@ fn parse_args() -> Result<DaemonConfig, String> {
     let mut listen = DEFAULT_LISTEN_ADDR
         .parse::<SocketAddr>()
         .map_err(|err| err.to_string())?;
-    let mut token = env::var("CODEX_MONITOR_DAEMON_TOKEN")
+    let mut token = env::var("AGENTS_MANAGER_DAEMON_TOKEN")
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty());
@@ -1011,7 +1011,7 @@ fn parse_args() -> Result<DaemonConfig, String> {
 
     if token.is_none() && !insecure_no_auth {
         return Err(
-            "Missing --token (or set CODEX_MONITOR_DAEMON_TOKEN). Use --insecure-no-auth for local dev only."
+            "Missing --token (or set AGENTS_MANAGER_DAEMON_TOKEN). Use --insecure-no-auth for local dev only."
                 .to_string(),
         );
     }
@@ -1590,7 +1590,7 @@ fn main() {
             .await
             .unwrap_or_else(|err| panic!("failed to bind {}: {err}", config.listen));
         eprintln!(
-            "codex-monitor-daemon listening on {} (data dir: {})",
+            "agents-manager-daemon listening on {} (data dir: {})",
             config.listen,
             state
                 .storage_path
