@@ -373,7 +373,15 @@ pub(crate) async fn spawn_acp_session(
         Err(_) => {
             let mut child = session.child.lock().await;
             let _ = child.kill().await;
-            return Err("ACP runner did not respond to initialize.".to_string());
+            return Err(format!(
+                "ACP runner '{}' did not respond to initialize within {}s. \
+                 Ensure the runner binary is installed and supports ACP protocol. \
+                 For Claude Code, install: npm install -g @zed-industries/claude-code-acp. \
+                 For Gemini CLI, ensure 'gemini' is in PATH. \
+                 Check app logs for details.",
+                runner_id,
+                ACP_INIT_TIMEOUT.as_secs()
+            ));
         }
     };
     init_response?;

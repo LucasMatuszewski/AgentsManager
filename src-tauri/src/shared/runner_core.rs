@@ -79,7 +79,7 @@ mod tests {
                 name: "Claude Code".to_string(),
                 kind: "claude".to_string(),
                 transport: "acp".to_string(),
-                default_command: "claude".to_string(),
+                default_command: "claude-code-acp".to_string(),
             },
         ]
     }
@@ -123,7 +123,7 @@ mod tests {
         for (runner_id, command) in [
             ("codex", "codex"),
             ("gemini", "gemini"),
-            ("claude", "claude"),
+            ("claude", "claude-code-acp"),
         ] {
             let mut settings = WorkspaceSettings::default();
             settings.runner_id = Some(runner_id.to_string());

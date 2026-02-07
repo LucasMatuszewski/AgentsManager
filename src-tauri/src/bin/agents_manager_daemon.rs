@@ -205,7 +205,7 @@ impl DaemonState {
                 name: "Claude Code".to_string(),
                 kind: "claude".to_string(),
                 transport: "acp".to_string(),
-                default_command: "claude".to_string(),
+                default_command: "claude-code-acp".to_string(),
             },
         ]
     }
