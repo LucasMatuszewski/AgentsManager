@@ -16,6 +16,7 @@
     "doctor:win": "node scripts/doctor.mjs --strict",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "vitest run",
+    "test:unit": "vitest run src/utils src/services src/features/**/utils/**",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",

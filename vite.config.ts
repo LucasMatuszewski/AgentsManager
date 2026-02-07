@@ -24,6 +24,17 @@ export default defineConfig(async () => ({
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     setupFiles: ["src/test/vitest.setup.ts"],
+    // Low-RAM optimization (4GB system on HP Spectre x2)
+    maxWorkers: 2, // Limit to 2 workers to prevent OOM
+    pool: "threads", // Use threads pool (lighter than vmThreads)
+    poolOptions: {
+      threads: {
+        maxThreads: 2,
+        minThreads: 2, // Must match maxThreads to avoid errors
+      },
+    },
+    fileParallelism: true, // Parallel file ops within workers
+    isolate: false, // Reduce memory overhead
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
