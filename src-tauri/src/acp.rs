@@ -608,10 +608,29 @@ pub(crate) async fn update_acp_thread_name(
 
 #[cfg(test)]
 mod tests {
-    use super::{list_acp_threads, register_acp_thread, remove_acp_thread, update_acp_thread_name};
+    use super::{
+        list_acp_threads, register_acp_thread, remove_acp_thread, spawn_acp_session,
+        update_acp_thread_name,
+    };
+    use crate::backend::events::{AppServerEvent, EventSink, TerminalExit, TerminalOutput};
+    use crate::types::{WorkspaceEntry, WorkspaceKind, WorkspaceSettings};
     use serde_json::json;
     use std::collections::HashMap;
+    use std::env;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
     use tokio::sync::Mutex;
+
+    #[derive(Clone, Default)]
+    struct NoopEventSink;
+
+    impl EventSink for NoopEventSink {
+        fn emit_app_server_event(&self, _event: AppServerEvent) {}
+
+        fn emit_terminal_output(&self, _event: TerminalOutput) {}
+
+        fn emit_terminal_exit(&self, _event: TerminalExit) {}
+    }
 
     #[test]
     fn register_and_list_threads() {
@@ -678,5 +697,87 @@ mod tests {
             let data = result.get("data").and_then(|value| value.as_array()).unwrap();
             assert!(data.is_empty());
         });
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn spawn_acp_session_with_mock_runner() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let script_path = env::temp_dir().join(format!(
+            "acp_mock_runner_{}_{}.py",
+            std::process::id(),
+            now
+        ));
+        let script = r#"#!/usr/bin/env python3
+import sys
+import json
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        message = json.loads(line)
+    except Exception:
+        continue
+    if "id" not in message:
+        continue
+    method = message.get("method", "")
+    if method == "initialize":
+        result = {}
+    elif method == "session/new":
+        result = {"sessionId": "test-session"}
+    else:
+        result = {}
+    response = {"id": message["id"], "result": result}
+    sys.stdout.write(json.dumps(response) + "\n")
+    sys.stdout.flush()
+"#;
+        fs::write(&script_path, script).expect("write script");
+        let mut permissions = fs::metadata(&script_path)
+            .expect("metadata")
+            .permissions();
+        permissions.set_mode(0o700);
+        fs::set_permissions(&script_path, permissions).expect("chmod");
+
+        let entry = WorkspaceEntry {
+            id: "ws-1".to_string(),
+            name: "Workspace".to_string(),
+            path: env::temp_dir().to_string_lossy().to_string(),
+            codex_bin: None,
+            kind: WorkspaceKind::Main,
+            parent_id: None,
+            worktree: None,
+            settings: WorkspaceSettings {
+                runner_id: Some("gemini".to_string()),
+                runner_command: Some(script_path.to_string_lossy().to_string()),
+                ..WorkspaceSettings::default()
+            },
+        };
+
+        let session = spawn_acp_session(
+            entry,
+            "gemini".to_string(),
+            Some(script_path.to_string_lossy().to_string()),
+            None,
+            "test-client".to_string(),
+            NoopEventSink::default(),
+        )
+        .await
+        .expect("spawn session");
+
+        let session_id = session.session_id.lock().await.clone();
+        assert_eq!(session_id.as_deref(), Some("test-session"));
+
+        let mut child = session.child.lock().await;
+        let _ = child.kill().await;
+        let _ = child.wait().await;
+
+        fs::remove_file(&script_path).expect("cleanup script");
     }
 }
