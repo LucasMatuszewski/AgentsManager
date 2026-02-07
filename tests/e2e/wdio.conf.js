@@ -24,6 +24,18 @@ export const config = {
       },
     },
   ],
+  services: [
+    [
+      "visual",
+      {
+        baselineFolder: resolve(__dirname, "visual-baselines"),
+        formatImageName: "{tag}-{width}x{height}",
+        screenshotPath: resolve(__dirname, "screenshots"),
+        autoSaveBaseline: true,
+        debug: false,
+      },
+    ],
+  ],
   reporters: ["spec"],
   framework: "mocha",
   mochaOpts: {
