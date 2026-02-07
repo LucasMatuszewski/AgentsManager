@@ -8,7 +8,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, Command};
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tokio::time::timeout;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::backend::events::{AppServerEvent, EventSink};
 use crate::shared::process_core::tokio_command;
@@ -109,6 +109,62 @@ pub(crate) fn build_acp_command(
 fn apply_acp_runner_args(command: &mut Command, runner_id: &str) {
     if runner_id == "gemini" {
         command.arg("--experimental-acp");
+    }
+}
+
+/// Check that the ACP runner binary is available before attempting to spawn it.
+/// Returns Ok(()) if found, or a user-friendly error with install instructions.
+pub(crate) async fn check_acp_runner_installation(
+    runner_id: &str,
+    runner_command: Option<&str>,
+) -> Result<(), String> {
+    let binary = runner_command
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| match runner_id {
+            "claude" => "claude-code-acp",
+            "gemini" => "gemini",
+            _ => runner_id,
+        });
+
+    // If it's an absolute path, just check the file exists and is executable
+    if binary.starts_with('/') {
+        let path = std::path::Path::new(binary);
+        if path.exists() {
+            return Ok(());
+        }
+        warn!(runner_id, binary, "ACP runner binary not found at path");
+        return Err(format!("Runner binary not found at '{binary}'."));
+    }
+
+    // Try running `which <binary>` to check availability in PATH
+    let check = tokio::process::Command::new("which")
+        .arg(binary)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .await;
+
+    match check {
+        Ok(status) if status.success() => Ok(()),
+        _ => {
+            warn!(runner_id, binary, "ACP runner binary not found");
+            let install_hint = match runner_id {
+                "claude" => format!(
+                    "'{binary}' not found. Install it with:\n\n  \
+                     npm install -g @zed-industries/claude-code-acp\n\n\
+                     This adapter wraps Claude Code CLI for the ACP protocol."
+                ),
+                "gemini" => format!(
+                    "'{binary}' not found. Install Gemini CLI:\n\n  \
+                     npm install -g @anthropic-ai/gemini-cli\n\n\
+                     Then ensure 'gemini' is on your PATH."
+                ),
+                _ => format!(
+                    "'{binary}' not found. Ensure the runner binary is installed and on your PATH."
+                ),
+            };
+            Err(install_hint)
+        }
     }
 }
 
@@ -240,6 +296,9 @@ pub(crate) async fn spawn_acp_session(
     client_version: String,
     event_sink: impl EventSink,
 ) -> Result<Arc<AcpSession>, String> {
+    // Pre-flight: check that the runner binary is installed
+    check_acp_runner_installation(&runner_id, runner_command.as_deref()).await?;
+
     let mut command = build_acp_command(&runner_id, runner_command.clone());
     apply_acp_runner_args(&mut command, &runner_id);
     if let Some(env) = runner_env {
