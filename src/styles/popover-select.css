@@ -1,0 +1,110 @@
+.popover-select {
+  position: relative;
+  display: inline-flex;
+}
+
+.popover-select-trigger {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 2px 14px 2px 0;
+  cursor: pointer;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.popover-select-trigger:focus {
+  outline: none;
+  color: var(--text-strong);
+}
+
+.popover-select-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.popover-select-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popover-select-caret {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid var(--select-caret, var(--text-muted));
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.popover-select-dropdown {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: -6px;
+  min-width: 140px;
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 8px;
+  padding: 4px 0;
+  z-index: 100;
+  opacity: 1;
+  animation: popover-select-fade-in 0.12s ease-out;
+}
+
+@keyframes popover-select-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.popover-select-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.popover-select-item {
+  padding: 5px 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 4px;
+  margin: 0 4px;
+}
+
+.popover-select-item--focused,
+.popover-select-item:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+  color: var(--text-strong);
+}
+
+.popover-select-item--selected {
+  color: var(--text-strong);
+  font-weight: 500;
+}
+
+.popover-select-item--selected::before {
+  content: "✓ ";
+  font-size: 10px;
+}

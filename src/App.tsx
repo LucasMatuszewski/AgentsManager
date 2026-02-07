@@ -29,6 +29,7 @@ import "./styles/settings.css";
 import "./styles/compact-base.css";
 import "./styles/compact-phone.css";
 import "./styles/compact-tablet.css";
+import "./styles/popover-select.css";
 import successSoundUrl from "./assets/success-notification.mp3";
 import errorSoundUrl from "./assets/error-notification.mp3";
 import { AppLayout } from "./features/app/components/AppLayout";

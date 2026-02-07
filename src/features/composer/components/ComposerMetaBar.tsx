@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { BrainCog } from "lucide-react";
 import type { AccessMode, RunnerConfig, ThreadTokenUsage } from "../../../types";
+import { PopoverSelect } from "../../shared/components/PopoverSelect";
 
 type ComposerMetaBarProps = {
   disabled: boolean;
@@ -66,6 +67,29 @@ export function ComposerMetaBar({
     );
   const planSelected = selectedCollaborationModeId === (planMode?.id ?? "");
 
+  const collabOptions = collaborationModes.map((m) => ({
+    value: m.id,
+    label: m.label || m.id,
+  }));
+
+  const runnerOptions = runners.length > 0
+    ? runners.map((r) => ({ value: r.id, label: r.name }))
+    : [{ value: "", label: "No agents" }];
+
+  const modelOptions = models.length > 0
+    ? models.map((m) => ({ value: m.id, label: m.displayName || m.model }))
+    : [{ value: "", label: "No models" }];
+
+  const effortOptions = reasoningOptions.length > 0
+    ? reasoningOptions.map((e) => ({ value: e, label: e }))
+    : [{ value: "", label: "Default" }];
+
+  const accessOptions = [
+    { value: "read-only", label: "Read only" },
+    { value: "current", label: "On-Request" },
+    { value: "full-access", label: "Full access" },
+  ];
+
   return (
     <div className="composer-bar">
       <div className="composer-meta">
@@ -104,32 +128,26 @@ export function ComposerMetaBar({
             </div>
           ) : (
             <div className="composer-select-wrap">
-            <span className="composer-icon" aria-hidden>
-              <svg viewBox="0 0 24 24" fill="none">
-                <path
-                  d="m6.5 7.5 1 1 2-2M6.5 12.5l1 1 2-2M6.5 17.5l1 1 2-2M11 7.5h7M11 12.5h7M11 17.5h7"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-              <select
-                className="composer-select composer-select--model composer-select--collab"
-                aria-label="Collaboration mode"
-                value={selectedCollaborationModeId ?? ""}
-                onChange={(event) =>
-                  onSelectCollaborationMode(event.target.value || null)
-                }
+              <span className="composer-icon" aria-hidden>
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="m6.5 7.5 1 1 2-2M6.5 12.5l1 1 2-2M6.5 17.5l1 1 2-2M11 7.5h7M11 12.5h7M11 17.5h7"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <PopoverSelect
+                options={collabOptions}
+                value={selectedCollaborationModeId}
+                onChange={(v) => onSelectCollaborationMode(v || null)}
                 disabled={disabled}
-              >
-                {collaborationModes.map((mode) => (
-                  <option key={mode.id} value={mode.id}>
-                    {mode.label || mode.id}
-                  </option>
-                ))}
-              </select>
+                ariaLabel="Collaboration mode"
+                className="composer-select--collab"
+                width={78}
+              />
             </div>
           )
         )}
@@ -152,21 +170,16 @@ export function ComposerMetaBar({
                 />
               </svg>
             </span>
-            <select
-              className="composer-select composer-select--model composer-select--runner"
-              aria-label="Agent"
-              title="Agent (CLI runner used for new threads)"
-              value={selectedRunnerId ?? ""}
-              onChange={(event) => onSelectRunner(event.target.value || null)}
+            <PopoverSelect
+              options={runnerOptions}
+              value={selectedRunnerId}
+              onChange={(v) => onSelectRunner(v || null)}
               disabled={disabled || runners.length === 0}
-            >
-              {runners.length === 0 && <option value="">No agents</option>}
-              {runners.map((runner) => (
-                <option key={runner.id} value={runner.id}>
-                  {runner.name}
-                </option>
-              ))}
-            </select>
+              ariaLabel="Agent"
+              className="composer-select--runner"
+              placeholder="No agents"
+              width={110}
+            />
           </div>
         )}
         <div className="composer-select-wrap composer-select-wrap--model">
@@ -200,39 +213,30 @@ export function ComposerMetaBar({
               />
             </svg>
           </span>
-          <select
-            className="composer-select composer-select--model"
-            aria-label="Model"
-            value={selectedModelId ?? ""}
-            onChange={(event) => onSelectModel(event.target.value)}
+          <PopoverSelect
+            options={modelOptions}
+            value={selectedModelId}
+            onChange={onSelectModel}
             disabled={disabled}
-          >
-            {models.length === 0 && <option value="">No models</option>}
-            {models.map((model) => (
-              <option key={model.id} value={model.id}>
-                {model.displayName || model.model}
-              </option>
-            ))}
-          </select>
+            ariaLabel="Model"
+            className="composer-select--model"
+            placeholder="No models"
+            width={110}
+          />
         </div>
         <div className="composer-select-wrap composer-select-wrap--effort">
           <span className="composer-icon composer-icon--effort" aria-hidden>
             <BrainCog size={14} strokeWidth={1.8} />
           </span>
-          <select
-            className="composer-select composer-select--effort"
-            aria-label="Thinking mode"
-            value={selectedEffort ?? ""}
-            onChange={(event) => onSelectEffort(event.target.value)}
+          <PopoverSelect
+            options={effortOptions}
+            value={selectedEffort}
+            onChange={onSelectEffort}
             disabled={disabled || !reasoningSupported}
-          >
-            {reasoningOptions.length === 0 && <option value="">Default</option>}
-            {reasoningOptions.map((effort) => (
-              <option key={effort} value={effort}>
-                {effort}
-              </option>
-            ))}
-          </select>
+            ariaLabel="Thinking mode"
+            className="composer-select--effort"
+            width={80}
+          />
         </div>
         <div className="composer-select-wrap">
           <span className="composer-icon" aria-hidden>
@@ -252,19 +256,15 @@ export function ComposerMetaBar({
               />
             </svg>
           </span>
-          <select
-            className="composer-select composer-select--approval"
-            aria-label="Agent access"
-            disabled={disabled}
+          <PopoverSelect
+            options={accessOptions}
             value={accessMode}
-            onChange={(event) =>
-              onSelectAccessMode(event.target.value as AccessMode)
-            }
-          >
-            <option value="read-only">Read only</option>
-            <option value="current">On-Request</option>
-            <option value="full-access">Full access</option>
-          </select>
+            onChange={(v) => onSelectAccessMode(v as AccessMode)}
+            disabled={disabled}
+            ariaLabel="Agent access"
+            className="composer-select--approval"
+            width={90}
+          />
         </div>
       </div>
       <div className="composer-context">
