@@ -302,6 +302,50 @@ To better understand the AgentsManager project you should check:
 - PRD (Product Requirements Document): `docs/PRD.md`
 - ADRs (Architecture Decision Records): `docs/adr/`
 
+## Testing Guidelines
+
+**Low-RAM Constraint (4GB HP Spectre x2):**
+
+Vitest is configured with worker limits to prevent OOM errors:
+- `maxWorkers: 2` - Limits total parallel workers (vite.config.ts)
+- `pool: "threads"` - Uses lightweight thread pool (not vmThreads)
+- `poolOptions.threads: { maxThreads: 2, minThreads: 2 }` - Fixed thread count
+- `fileParallelism: true` - Parallel file ops within workers
+- `isolate: false` - Reduces memory overhead
+
+**Test Scripts:**
+
+- `npm run test` - Full test suite (70 test files, 364 tests) with worker limits
+- `npm run test:unit` - Fast unit-only testing (utils, services, no React/JSDOM)
+- `npm run lint` - ESLint validation
+- `npm run typecheck` - TypeScript compiler check
+
+**Test File Categories:**
+
+- **Unit tests**: Pure functions (src/utils, src/services) - lightweight, fast
+- **Hook tests**: React hooks with mocked dependencies (JSDOM) - moderate weight
+- **Component tests**: React components with JSDOM - heavier, DOM rendering
+- **Integration tests**: Full flow tests (useThreads.integration.test.tsx) - heaviest
+
+**Critical Rule:**
+
+🚫 **NEVER run multiple test commands concurrently** on this hardware.
+
+```bash
+# ✅ CORRECT - sequential
+npm run lint && npm run test && npm run typecheck
+
+# ❌ WRONG - concurrent (caused OOM incident 2026-02-07)
+npm run lint & npm run test &
+```
+
+**Test History:**
+- All 70 test files + 364 tests originated from original CodexMonitor repo (not added by us)
+- Original developers wrote comprehensive test coverage for all features
+- Tests ensure code quality and catch regressions
+
+---
+
 ## Development Process Rules
 - Start with planning. Then validate the plan before implementation; correct as needed.
 - Keep **small, frequent commits** (no giant commits).
@@ -340,3 +384,49 @@ To better understand the AgentsManager project you should check:
   - Hook: `src/features/notifications/hooks/useErrorToasts.ts`
   - UI: `src/features/notifications/components/ErrorToasts.tsx`
   - Styles: `src/styles/error-toasts.css`
+
+---
+
+## 🚫 System Constraints
+
+**IMPORTANT: This device is resource-constrained for development tasks:**
+
+**Hardware:**
+- Device: HP Spectre x2 Tablet (Lucas's work machine)
+- CPU: Intel m3 (4 cores, 4 threads)
+- RAM: 4GB
+
+**Critical Rules (NEVER VIOLATE):**
+
+🚫 **NEVER run multiple test/lint processes concurrently**
+- Causes OOM (Out of Memory) → 400% CPU, heavy swapping, processes killed
+- Example: `npm run lint & npm run test &` = CRASH
+- Always run sequentially: `npm run lint && npm run test && npm run typecheck`
+
+📊 **Vitest Configuration (enforced via vite.config.ts):**
+- `maxWorkers: 2` - Limits total parallel workers (not CPU count)
+- `pool: "threads"` - Uses lightweight thread pool
+- `poolOptions.threads: { maxThreads: 2, minThreads: 2 }` - Fixed thread count
+- `fileParallelism: true` - Parallel file ops within workers
+- `isolate: false` - Reduces memory overhead
+
+🧪 **Test Scripts:**
+| Command | Description |
+|---------|-------------|
+| `npm run test` | Full test suite (70 test files, 364 tests, ~57s on this hardware) |
+| `npm run test:unit` | Fast unit-only testing (src/utils, src/services, no JSDOM) |
+| `npm run lint` | ESLint validation |
+| `npm run typecheck` | TypeScript compiler check |
+
+📁 **Test File Origins:**
+- All 70 test files + 364 tests originated from original CodexMonitor repo
+- We forked a well-tested codebase
+- Tests ensure code quality and catch regressions
+
+📝 **Test Types:**
+- **Unit tests** (~10 files): Pure functions, no DOM, very lightweight
+- **Hook tests** (~35 files): React hooks with mocked dependencies, JSDOM environment, moderate memory
+- **Component tests** (~20 files): React components with JSDOM DOM rendering, heavier memory per test
+- **Integration tests** (~5 files): Full flow tests (e.g., `useThreads.integration.test.tsx`), heaviest
+
+**Note:** Tests use `@vitest-environment jsdom` (simulated browser DOM only) — NOT full Tauri app tests.
