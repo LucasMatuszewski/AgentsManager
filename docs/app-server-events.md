@@ -42,7 +42,7 @@ Primary outgoing request layer:
 - `src/services/tauri.ts`
 - `src-tauri/src/shared/codex_core.rs`
 - `src-tauri/src/codex/mod.rs`
-- `src-tauri/src/bin/codex_monitor_daemon.rs`
+- `src-tauri/src/bin/agents_manager_daemon.rs`
 
 ## Supported Events (Current)
 

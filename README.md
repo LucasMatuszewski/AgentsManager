@@ -1,18 +1,18 @@
-# CodexMonitor
+# AgentsManager
 
-![CodexMonitor](screenshot.png)
+![AgentsManager](screenshot.png)
 
-CodexMonitor is a macOS Tauri app for orchestrating multiple Codex agents across local workspaces. It provides a sidebar to manage projects, a home screen for quick actions, and a conversation view backed by the Codex app-server protocol.
+AgentsManager is a cross-platform Tauri app for orchestrating multiple AI agents (Codex, Gemini, Claude) across local workspaces via ACP. It provides a sidebar to manage projects, a home screen for quick actions, and a conversation view backed by agent protocols.
 
 ## Features
 
 ### Workspaces & Threads
 
 - Add and persist workspaces, group/sort them, and jump into recent agent activity from the home dashboard.
-- Spawn one `codex app-server` per workspace, resume threads, and track unread/running state.
+- Spawn one agent app-server per workspace, resume threads, and track unread/running state.
 - Worktree and clone agents for isolated work; worktrees live under the app data directory (legacy `.codex-worktrees` supported).
 - Thread management: pin/rename/archive/copy, per-thread drafts, and stop/interrupt in-flight turns.
-- Optional remote backend (daemon) mode for running Codex on another machine.
+- Optional remote backend (daemon) mode for running agents on another machine.
 
 ### Composer & Agent Controls
 

@@ -1,14 +1,13 @@
-# CodexMonitor Agent Guide
+# AgentsManager Agent Guide
 
 All docs must canonical, no past commentary, only live state.
 
 ## Project Summary
-This is AgentsManager app, a fork of CodexMonitor (a Tauri app that orchestrates Codex agents across local workspaces).
-AgentsManager extends this to **multi‑agent orchestration** (Codex, Gemini CLI, Claude Code) via ACP, with runner selection and clear context UI.
+This is AgentsManager app, a Tauri app that orchestrates multiple AI agents (Codex, Gemini, Claude) across local workspaces via ACP, with runner selection and clear context UI.
 
 - Frontend: React + Vite
 - Backend (app): Tauri Rust process
-- Backend (daemon): `src-tauri/src/bin/codex_monitor_daemon.rs`
+- Backend (daemon): `src-tauri/src/bin/agents_manager_daemon.rs`
 - Shared backend domain logic: `src-tauri/src/shared/*`
 
 ## Backend Architecture
@@ -17,7 +16,7 @@ The backend separates shared domain logic from environment wiring.
 
 - Shared domain/core logic: `src-tauri/src/shared/*`
 - App wiring and platform concerns: feature folders + adapters
-- Daemon wiring and transport concerns: `src-tauri/src/bin/codex_monitor_daemon.rs`
+- Daemon wiring and transport concerns: `src-tauri/src/bin/agents_manager_daemon.rs`
 
 ## Feature Folders
 
@@ -82,9 +81,9 @@ The app and daemon do not re-implement domain logic.
 
 ## Daemon Module Wrappers
 
-The daemon defines wrapper modules named `codex` and `files` inside `src-tauri/src/bin/codex_monitor_daemon.rs`.
+The daemon defines wrapper modules named `codex` and `files` inside `src-tauri/src/bin/agents_manager_daemon.rs`.
 
-These wrappers re-export the daemon’s local modules:
+These wrappers re-export the daemon's local modules:
 
 - Codex: `codex_args`, `codex_home`, `codex_config`
 - Files: `file_io`, `file_ops`, `file_policy`
@@ -115,7 +114,7 @@ Shared cores use `crate::codex::*` and `crate::files::*` paths. The daemon wrapp
 
 ### Backend (Daemon)
 
-- Daemon entrypoint: `src-tauri/src/bin/codex_monitor_daemon.rs`
+- Daemon entrypoint: `src-tauri/src/bin/agents_manager_daemon.rs`
 - Daemon imports shared cores via `#[path = "../shared/mod.rs"] mod shared;`
 
 ## Architecture Guidelines
@@ -183,9 +182,9 @@ Update the daemon when one of these is true:
 - App spawn adapter:
   - `spawn_with_app(...)` in `src-tauri/src/workspaces/commands.rs`
 - Daemon spawn adapter:
-  - `spawn_with_client(...)` in `src-tauri/src/bin/codex_monitor_daemon.rs`
+  - `spawn_with_client(...)` in `src-tauri/src/bin/agents_manager_daemon.rs`
 - Daemon wrapper modules:
-  - `mod codex { ... }` and `mod files { ... }` in `codex_monitor_daemon.rs`
+  - `mod codex { ... }` and `mod files { ... }` in `agents_manager_daemon.rs`
 
 If you find yourself copying logic between app and daemon, extract it into `src-tauri/src/shared/`.
 
@@ -307,8 +306,8 @@ To better understand the AgentsManager project you should check:
 - Start with planning. Then validate the plan before implementation; correct as needed.
 - Keep **small, frequent commits** (no giant commits).
 - Require **unit/integration tests** for changes and validate before merge.
-- Run dev server to verify; if app isn’t usable, notify Lucas.
-- Use feature branches; don’t develop on main.
+- Run dev server to verify; if app isn't usable, notify Lucas.
+- Use feature branches; don't develop on main.
 
 ## Notes
 
@@ -322,7 +321,7 @@ To better understand the AgentsManager project you should check:
 ## Logging (current state)
 - **Rust logging is now enabled** via `tracing` + `tracing_subscriber` + `tracing_appender`.
 - App init: `src-tauri/src/lib.rs` calls `logging::init_app_logging`.
-- Daemon init: `src-tauri/src/bin/codex_monitor_daemon.rs` calls `logging::init_daemon_logging`.
+- Daemon init: `src-tauri/src/bin/agents_manager_daemon.rs` calls `logging::init_daemon_logging`.
 - Default log files:
   - App: `app_log_dir`/`agentsmanager.log` (fallback to app data dir)
   - Daemon: `<data_dir>/logs/daemon.log`

@@ -38,8 +38,8 @@ fn extract_thread_id(value: &Value) -> Option<String> {
 fn build_initialize_params(client_version: &str) -> Value {
     json!({
         "clientInfo": {
-            "name": "codex_monitor",
-            "title": "Codex Monitor",
+            "name": "agents_manager",
+            "title": "Agents Manager",
             "version": client_version
         },
         "capabilities": {
