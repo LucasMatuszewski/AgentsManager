@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DebugEntry, ModelOption, WorkspaceInfo } from "../../../types";
 import { getConfigModel, getModelList } from "../../../services/tauri";
+import { getStaticRunnerModels } from "../runner-models";
 
 type UseModelsOptions = {
   activeWorkspace: WorkspaceInfo | null;
   onDebug?: (entry: DebugEntry) => void;
   preferredModelId?: string | null;
   preferredEffort?: string | null;
+  selectedRunnerId?: string | null;
 };
 
 const CONFIG_MODEL_DESCRIPTION = "Configured in CODEX_HOME/config.toml";
@@ -44,6 +46,7 @@ export function useModels({
   onDebug,
   preferredModelId = null,
   preferredEffort = null,
+  selectedRunnerId = null,
 }: UseModelsOptions) {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [configModel, setConfigModel] = useState<string | null>(null);
@@ -136,7 +139,37 @@ export function useModels({
     [preferredEffort, selectedEffort],
   );
 
+  // When runner changes to a non-Codex runner, use static model lists
+  const lastRunnerId = useRef<string | null>(null);
+  useEffect(() => {
+    if (selectedRunnerId === lastRunnerId.current) {
+      return;
+    }
+    lastRunnerId.current = selectedRunnerId;
+
+    const staticModels = getStaticRunnerModels(selectedRunnerId);
+    if (staticModels) {
+      setModels(staticModels);
+      setConfigModel(null);
+      hasUserSelectedModel.current = false;
+      hasUserSelectedEffort.current = false;
+      const defaultModel = staticModels.find((m) => m.isDefault) ?? staticModels[0] ?? null;
+      if (defaultModel) {
+        setSelectedModelIdState(defaultModel.id);
+        setSelectedEffortState(defaultModel.defaultReasoningEffort);
+      }
+      return;
+    }
+    // Codex runner: re-fetch from app-server
+    lastFetchedWorkspaceId.current = null; // force refresh
+  }, [selectedRunnerId]);
+
   const refreshModels = useCallback(async () => {
+    // Skip fetching for runners with static model lists
+    const staticModels = getStaticRunnerModels(selectedRunnerId);
+    if (staticModels) {
+      return;
+    }
     if (!workspaceId || !isConnected) {
       return;
     }
@@ -272,6 +305,7 @@ export function useModels({
     preferredModelId,
     selectedEffort,
     selectedModelId,
+    selectedRunnerId,
     resolveEffort,
     workspaceId,
   ]);

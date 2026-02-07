@@ -398,6 +398,11 @@ function MainApp() {
     setDepth: setGitRootScanDepth,
     clear: clearGitRootCandidates,
   } = useGitRepoScan(activeWorkspace);
+  const { runners } = useRunners({ onDebug: addDebugEntry });
+  const { selectedRunnerId, setSelectedRunnerId } = useRunnerSelection({
+    activeWorkspace,
+    runners,
+  });
   const {
     models,
     selectedModel,
@@ -412,11 +417,7 @@ function MainApp() {
     onDebug: addDebugEntry,
     preferredModelId: appSettings.lastComposerModelId,
     preferredEffort: appSettings.lastComposerReasoningEffort,
-  });
-  const { runners } = useRunners({ onDebug: addDebugEntry });
-  const { selectedRunnerId, setSelectedRunnerId } = useRunnerSelection({
-    activeWorkspace,
-    runners,
+    selectedRunnerId,
   });
 
   const {
