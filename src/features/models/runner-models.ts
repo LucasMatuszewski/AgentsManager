@@ -9,9 +9,9 @@ import type { ModelOption } from "../../types";
 
 const geminiModels: ModelOption[] = [
   {
-    id: "gemini-2.5-pro",
-    model: "gemini-2.5-pro",
-    displayName: "Gemini 2.5 Pro",
+    id: "gemini-3-pro-preview",
+    model: "gemini-3-pro-preview",
+    displayName: "Gemini 3 Pro",
     description: "Most capable Gemini model with extended thinking",
     supportedReasoningEfforts: [
       { reasoningEffort: "low", description: "Fast responses" },
@@ -22,9 +22,9 @@ const geminiModels: ModelOption[] = [
     isDefault: true,
   },
   {
-    id: "gemini-2.5-flash",
-    model: "gemini-2.5-flash",
-    displayName: "Gemini 2.5 Flash",
+    id: "gemini-3-flash-preview",
+    model: "gemini-3-flash-preview",
+    displayName: "Gemini 3 Flash",
     description: "Fast and efficient with thinking capabilities",
     supportedReasoningEfforts: [
       { reasoningEffort: "low", description: "Fastest" },
@@ -32,15 +32,6 @@ const geminiModels: ModelOption[] = [
       { reasoningEffort: "high", description: "More thorough" },
     ],
     defaultReasoningEffort: "low",
-    isDefault: false,
-  },
-  {
-    id: "gemini-2.0-flash",
-    model: "gemini-2.0-flash",
-    displayName: "Gemini 2.0 Flash",
-    description: "Previous generation fast model",
-    supportedReasoningEfforts: [],
-    defaultReasoningEffort: null,
     isDefault: false,
   },
 ];
@@ -60,10 +51,10 @@ const claudeModels: ModelOption[] = [
     isDefault: true,
   },
   {
-    id: "claude-opus-4-20250514",
-    model: "claude-opus-4-20250514",
-    displayName: "Claude Opus 4",
-    description: "Most capable Claude model",
+    id: "claude-opus-4-6-20250514",
+    model: "claude-opus-4-6-20250514",
+    displayName: "Claude Opus 4.6",
+    description: "Latest and most capable Claude model",
     supportedReasoningEfforts: [
       { reasoningEffort: "low", description: "Quick responses" },
       { reasoningEffort: "medium", description: "Balanced thinking" },
@@ -73,9 +64,22 @@ const claudeModels: ModelOption[] = [
     isDefault: false,
   },
   {
-    id: "claude-haiku-3-5-20241022",
-    model: "claude-haiku-3-5-20241022",
-    displayName: "Claude 3.5 Haiku",
+    id: "claude-opus-4-5-20250514",
+    model: "claude-opus-4-5-20250514",
+    displayName: "Claude Opus 4.5",
+    description: "Highly capable Claude model",
+    supportedReasoningEfforts: [
+      { reasoningEffort: "low", description: "Quick responses" },
+      { reasoningEffort: "medium", description: "Balanced thinking" },
+      { reasoningEffort: "high", description: "Deep reasoning" },
+    ],
+    defaultReasoningEffort: "medium",
+    isDefault: false,
+  },
+  {
+    id: "claude-haiku-4-5-20250514",
+    model: "claude-haiku-4-5-20250514",
+    displayName: "Claude Haiku 4.5",
     description: "Fastest Claude model",
     supportedReasoningEfforts: [],
     defaultReasoningEffort: null,

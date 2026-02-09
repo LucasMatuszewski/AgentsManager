@@ -37,6 +37,7 @@ import { computeDictationInsertion } from "../../../utils/dictation";
 import { getCaretPosition } from "../../../utils/caretPosition";
 import { isComposingEvent } from "../../../utils/keys";
 import { FileEditorCard } from "../../shared/components/FileEditorCard";
+import { PopoverSelect } from "../../shared/components/PopoverSelect";
 
 type ThreadStatus = {
   isProcessing: boolean;
@@ -509,6 +510,7 @@ export function WorkspaceHome({
             canStop={false}
             canSend={prompt.trim().length > 0 || activeImages.length > 0}
             isProcessing={isSubmitting}
+            selectedRunnerId={selectedRunnerId}
             onStop={() => {}}
             onSend={() => {
               void handleRunSubmit();
@@ -633,21 +635,19 @@ export function WorkspaceHome({
                 />
               </svg>
             </span>
-            <select
-              className="composer-select composer-select--model composer-select--runner"
-              aria-label="Agent"
-              title="Agent (CLI runner used for new threads)"
+            <PopoverSelect
+              options={runners.length === 0
+                ? [{ value: "", label: "No agents" }]
+                : runners.map((runner) => ({ value: runner.id, label: runner.name }))
+              }
               value={selectedRunnerId ?? ""}
-              onChange={(event) => onSelectRunner(event.target.value || null)}
+              onChange={(value) => onSelectRunner(value || null)}
               disabled={isSubmitting || runners.length === 0}
-            >
-              {runners.length === 0 && <option value="">No agents</option>}
-              {runners.map((runner) => (
-                <option key={runner.id} value={runner.id}>
-                  {runner.name}
-                </option>
-              ))}
-            </select>
+              ariaLabel="Agent"
+              className="composer-select--runner"
+              placeholder="No agents"
+              width={110}
+            />
           </div>
         </div>
 

@@ -570,6 +570,7 @@ export function Composer({
         canStop={canStop}
         canSend={canSend}
         isProcessing={isProcessing}
+        selectedRunnerId={selectedRunnerId}
         onStop={onStop}
         onSend={handleSend}
         dictationEnabled={dictationEnabled}

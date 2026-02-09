@@ -35,6 +35,7 @@ type ComposerInputProps = {
   canStop: boolean;
   canSend: boolean;
   isProcessing: boolean;
+  selectedRunnerId?: string | null;
   onStop: () => void;
   onSend: () => void;
   dictationState?: "idle" | "listening" | "processing";
@@ -137,6 +138,7 @@ export function ComposerInput({
   canStop,
   canSend,
   isProcessing,
+  selectedRunnerId,
   onStop,
   onSend,
   dictationState = "idle",
@@ -189,6 +191,24 @@ export function ComposerInput({
   const minTextareaHeight = isExpanded ? 180 : 60;
   const maxTextareaHeight = isExpanded ? 320 : 120;
   const reviewPromptOpen = Boolean(reviewPrompt);
+
+  // Dynamic placeholder based on selected runner
+  const getPlaceholder = () => {
+    if (disabled) {
+      return "Review in progress. Chat will re-enable when it completes.";
+    }
+    switch (selectedRunnerId) {
+      case "gemini":
+        return "Ask Gemini to do something...";
+      case "claude":
+        return "Ask Claude to do something...";
+      case "codex":
+        return "Ask Codex to do something...";
+      default:
+        return "Ask the agent to do something...";
+    }
+  };
+
   const {
     dropTargetRef,
     isDragOver,
@@ -335,11 +355,7 @@ export function ComposerInput({
           </button>
           <textarea
             ref={textareaRef}
-            placeholder={
-              disabled
-                ? "Review in progress. Chat will re-enable when it completes."
-                : "Ask Codex to do something..."
-            }
+            placeholder={getPlaceholder()}
             value={text}
             onChange={handleTextareaChange}
             onSelect={handleTextareaSelect}
