@@ -17,6 +17,7 @@ import {
   listMcpServerStatus as listMcpServerStatusService,
 } from "../../../services/tauri";
 import { expandCustomPromptText } from "../../../utils/customPrompts";
+import { pushErrorToast } from "../../../services/toasts";
 import {
   asString,
   extractReviewThreadId,
@@ -288,7 +289,24 @@ export function useThreadMessaging({
         return;
       }
       const finalText = promptExpansion?.expanded ?? messageText;
-      const threadId = await ensureThreadForActiveWorkspace();
+      let threadId: string | null = null;
+      try {
+        threadId = await ensureThreadForActiveWorkspace();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        onDebug?.({
+          id: `${Date.now()}-client-thread-start-error`,
+          timestamp: Date.now(),
+          source: "error",
+          label: "thread/start error",
+          payload: errorMessage,
+        });
+        pushErrorToast({
+          title: "Failed to start session",
+          message: errorMessage,
+        });
+        return;
+      }
       if (!threadId) {
         return;
       }
