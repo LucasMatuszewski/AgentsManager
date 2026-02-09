@@ -262,6 +262,8 @@ pub(crate) async fn resume_thread(
         if runner_id != "codex" {
             return Ok(json!({ "result": null }));
         }
+    } else if state.acp_sessions.lock().await.contains_key(&thread_id) {
+        return Ok(json!({ "result": null }));
     }
 
     codex_core::resume_thread_core(&state.sessions, workspace_id, thread_id).await
@@ -288,6 +290,8 @@ pub(crate) async fn fork_thread(
         if runner_id != "codex" {
             return Err("ACP runners do not support fork yet".to_string());
         }
+    } else if state.acp_sessions.lock().await.contains_key(&thread_id) {
+        return Err("ACP runners do not support fork yet".to_string());
     }
 
     codex_core::fork_thread_core(&state.sessions, workspace_id, thread_id).await
@@ -434,6 +438,8 @@ pub(crate) async fn compact_thread(
         if runner_id != "codex" {
             return Ok(json!({ "result": null }));
         }
+    } else if state.acp_sessions.lock().await.contains_key(&thread_id) {
+        return Ok(json!({ "result": null }));
     }
 
     codex_core::compact_thread_core(&state.sessions, workspace_id, thread_id).await
@@ -463,6 +469,11 @@ pub(crate) async fn set_thread_name(
                 .await;
             return Ok(json!({ "result": null }));
         }
+    } else if state.acp_sessions.lock().await.contains_key(&thread_id) {
+        // Fallback: found in acp_sessions
+        acp::update_acp_thread_name(&state.acp_threads, &workspace_id, &thread_id, &name)
+            .await;
+        return Ok(json!({ "result": null }));
     }
 
     codex_core::set_thread_name_core(&state.sessions, workspace_id, thread_id, name).await
@@ -534,10 +545,21 @@ pub(crate) async fn send_user_message(
             return acp::start_prompt_turn(&session, event_sink, text, images).await;
         }
     } else {
+        // Fallback: check acp_sessions directly just in case thread_runners is out of sync
+        if let Some(session) = state.acp_sessions.lock().await.get(&thread_id).cloned() {
+            tracing::warn!(
+                workspace_id = %workspace_id,
+                thread_id = %thread_id,
+                "send_user_message: found in acp_sessions but NOT in thread_runners - recovering"
+            );
+            let event_sink = TauriEventSink::new(app.clone());
+            return acp::start_prompt_turn(&session, event_sink, text, images).await;
+        }
+
         tracing::warn!(
             workspace_id = %workspace_id,
             thread_id = %thread_id,
-            "send_user_message: thread_id NOT found in thread_runners, falling back to Codex"
+            "send_user_message: thread_id NOT found in thread_runners or acp_sessions, falling back to Codex"
         );
     }
 
@@ -604,6 +626,10 @@ pub(crate) async fn turn_interrupt(
             acp::cancel_prompt_turn(&session).await?;
             return Ok(json!({ "result": { "turnId": turn_id } }));
         }
+    } else if let Some(session) = state.acp_sessions.lock().await.get(&thread_id).cloned() {
+        // Fallback check
+        acp::cancel_prompt_turn(&session).await?;
+        return Ok(json!({ "result": { "turnId": turn_id } }));
     }
 
     codex_core::turn_interrupt_core(&state.sessions, workspace_id, thread_id, turn_id).await
