@@ -218,7 +218,14 @@ pub(crate) async fn start_thread(
             .thread_runners
             .lock()
             .await
-            .insert(thread_id.clone(), resolved_runner);
+            .insert(thread_id.clone(), resolved_runner.clone());
+
+        tracing::info!(
+            workspace_id = %workspace_id,
+            thread_id = %thread_id,
+            runner_id = %resolved_runner,
+            "start_thread: inserted ACP session into thread_runners"
+        );
 
         let thread_payload = json!({
             "id": thread_id,
@@ -474,6 +481,11 @@ pub(crate) async fn send_user_message(
     state: State<'_, AppState>,
     app: AppHandle,
 ) -> Result<Value, String> {
+    tracing::info!(
+        workspace_id = %workspace_id,
+        thread_id = %thread_id,
+        "send_user_message: received request"
+    );
     if remote_backend::is_remote_mode(&*state).await {
         let images = images.map(|paths| {
             paths
@@ -504,6 +516,12 @@ pub(crate) async fn send_user_message(
     }
 
     if let Some(runner_id) = state.thread_runners.lock().await.get(&thread_id).cloned() {
+        tracing::info!(
+            workspace_id = %workspace_id,
+            thread_id = %thread_id,
+            runner_id = %runner_id,
+            "send_user_message: found runner in thread_runners"
+        );
         if runner_id != "codex" {
             let session = state
                 .acp_sessions
@@ -515,6 +533,12 @@ pub(crate) async fn send_user_message(
             let event_sink = TauriEventSink::new(app.clone());
             return acp::start_prompt_turn(&session, event_sink, text, images).await;
         }
+    } else {
+        tracing::warn!(
+            workspace_id = %workspace_id,
+            thread_id = %thread_id,
+            "send_user_message: thread_id NOT found in thread_runners, falling back to Codex"
+        );
     }
 
     codex_core::send_user_message_core(
